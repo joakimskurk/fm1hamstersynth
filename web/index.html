@@ -1,0 +1,423 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only
+     HamsterSynths side og installasjon (web/make_site.py lager nettstedet). Installasjonen følger SLOOPs (fm1pkg.js,
+     fm1ota.js: oppdateringsprotokollen over Web MIDI). «Prøv i nettleseren» er firmwaren selv, kompilert til
+     WebAssembly (web/app/). -->
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HamsterSynth – åtte syngende hamstere for M-VAVE FM-1</title>
+<meta name="description" content="HamsterSynth: gratis firmware for M-VAVE FM-1. Åtte hamstere som synger, en 16-stegs sequencer med åtte sekvenser og song, en trommehamster og THALLHAMSTERGRINDCORE. Installeres fra nettleseren, kan prøves her.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="HamsterSynth – åtte syngende hamstere for M-VAVE FM-1">
+<meta property="og:description" content="Gratis firmware for M-VAVE FM-1: åtte hamstere som synger, en sequencer, en trommehamster og THALLHAMSTERGRINDCORE. Prøv den i nettleseren.">
+<meta property="og:image" content="screens/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="HamsterSynth: logoen i piksler og de åtte hamsterne på FM-1-skjermen">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="screens/icon.png">
+<style>
+  :root { --paper: #e8dfcb; --cream: #f7ecd7; --cream2: #fff3dd; --ink: #091a25; --ink2: #17313f; --blue: #426b7c;
+          --blue3: #294653; --pink: #f18e8c; --pink2: #d95f67; --yellow: #ffd74b; --orange: #f0a851; --muted: #627178;
+          --good: #3f8f4a; --bad: #c2413f; }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; color: var(--ink); background:
+           linear-gradient(rgba(9,26,37,.03) 1px, transparent 1px) 0 0/8px 8px,
+           linear-gradient(90deg, rgba(9,26,37,.03) 1px, transparent 1px) 0 0/8px 8px, var(--paper);
+         font: 16px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 56px; }
+  a { color: var(--pink2); }
+  .panel { background: var(--cream); border: 3px solid var(--ink); box-shadow: 0 0 0 3px #c3c9c6, 0 0 0 6px var(--ink); }
+  h1 { margin: 0; line-height: 0; }
+  h1 img { width: 100%; height: auto; display: block; border: 3px solid var(--ink); }
+  .tag { margin: 14px 0 0; font-size: 17px; font-weight: 700; text-align: center; }
+  h2 { font-size: 20px; letter-spacing: .06em; text-transform: uppercase; margin: 48px 0 14px; }
+  h2::before { content: "■ "; color: var(--pink2); }
+  h3 { font-size: 16px; margin: 0 0 4px; }
+  .warn { margin: 20px 0 0; padding: 12px 16px; border: 3px solid var(--pink2); background: #fbe1dc; font-size: 14px; }
+  .warn b { color: var(--pink2); }
+  .cta { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 18px 0 0; }
+  .cta a { display: inline-block; padding: 10px 16px; border: 3px solid var(--ink); background: var(--yellow);
+           color: var(--ink); font-weight: 700; text-decoration: none; box-shadow: 0 3px 0 var(--ink); }
+  .cta a.alt { background: var(--cream2); }
+  .cta a:hover { transform: translateY(1px); box-shadow: 0 2px 0 var(--ink); }
+  .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 24px 0 0; }
+  .hero img { width: 100%; height: auto; border: 3px solid var(--ink); display: block; }
+  .lead { font-size: 16px; margin: 22px 0 0; }
+  blockquote { margin: 18px 0 0; padding: 10px 14px; border-left: 6px solid var(--orange); background: var(--cream2); }
+  blockquote cite { display: block; font-size: 13px; color: var(--muted); font-style: normal; margin-top: 4px; }
+  .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 22px 0 0; }
+  .fact { background: var(--ink2); color: var(--cream2); padding: 10px 12px 12px; border-top: 4px solid var(--yellow); }
+  .fact b { display: block; font-size: 26px; line-height: 1.1; color: var(--yellow); }
+  .fact span { display: block; font-size: 13px; line-height: 1.35; margin-top: 4px; color: #c7cfcc; }
+  /* Prøv: the FM-1 as a panel */
+  .app { background: var(--ink2); border: 3px solid var(--ink); padding: 16px; color: var(--cream2); }
+  .fm1 { display: grid; grid-template-columns: minmax(0, 480px) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .scr { position: relative; width: 100%; aspect-ratio: 1; background: #000; border: 6px solid #050607; }
+  .scr canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+  .scr .start { position: absolute; inset: 0; margin: auto; width: 190px; height: 60px; font: 700 18px/1 inherit;
+                font-family: inherit; border: 3px solid var(--ink); background: var(--yellow); color: var(--ink);
+                cursor: pointer; box-shadow: 0 4px 0 var(--ink); }
+  .ctl { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .ctl button, .enc button { font: 700 13px/1.2 inherit; font-family: inherit; padding: 8px 6px; border: 2px solid #050607;
+                background: var(--blue3); color: var(--cream2); cursor: pointer; touch-action: none; user-select: none; }
+  .ctl button small { display: block; font-size: 10px; font-weight: 400; color: #c7cfcc; }
+  .ctl button.lit { background: var(--pink); color: var(--ink); }
+  .ctl button.lit small { color: var(--ink2); }
+  .ctl button.held, .enc button:active { transform: translateY(1px); filter: brightness(1.15); }
+  .encs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 10px 0 0; }
+  .enc { display: flex; align-items: center; justify-content: space-between; gap: 4px; background: #0f2530;
+         padding: 4px 6px; font-size: 12px; }
+  .enc span { flex: 1; text-align: center; }
+  .enc button { padding: 4px 9px; }
+  .kbd { position: relative; height: 70px; margin: 14px 0 0; touch-action: none; user-select: none; }
+  .kbd button { position: absolute; top: 0; border: 1px solid #050607; border-radius: 0 0 4px 4px; padding: 0; cursor: pointer; }
+  .kbd .kw { height: 100%; background: #e8e2d4; }
+  .kbd .kb { height: 60%; background: #2a3138; z-index: 1; }
+  .kbd .kw.glow { background: #f3e2b8; } .kbd .kb.glow { background: #4a4030; }
+  .kbd .kw.on, .kbd .kw.held { background: var(--yellow); box-shadow: 0 0 12px var(--orange) inset; }
+  .kbd .kb.on, .kbd .kb.held { background: var(--orange); }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin: 12px 0 0; font-size: 13px; }
+  .bar button { font: 700 13px/1 inherit; font-family: inherit; padding: 8px 12px; border: 2px solid #050607; background: var(--blue3); color: var(--cream2); cursor: pointer; }
+  .bar input { accent-color: var(--yellow); vertical-align: middle; }
+  #appstatus { margin: 10px 0 0; font-size: 14px; color: var(--yellow); }
+  .app .small { color: #c7cfcc; }
+  .app:not(.on) .ctl, .app:not(.on) .encs, .app:not(.on) .kbd { opacity: .45; pointer-events: none; }
+  kbd { background: var(--cream2); color: var(--ink); border: 1px solid var(--ink); border-bottom-width: 2px; padding: 0 4px; font: inherit; font-size: 12px; }
+  /* install */
+  .box { background: var(--cream); border: 3px solid var(--ink); padding: 18px; }
+  button#go { font: 700 17px/1 inherit; font-family: inherit; width: 100%; padding: 16px 0; border: 3px solid var(--ink);
+              background: var(--yellow); color: var(--ink); letter-spacing: .1em; text-transform: uppercase; cursor: pointer;
+              box-shadow: 0 4px 0 var(--ink); }
+  button#go:disabled { background: #d8d2c4; color: var(--muted); cursor: default; box-shadow: none; }
+  progress { -webkit-appearance: none; appearance: none; width: 100%; height: 10px; margin: 16px 0 0; border: 2px solid var(--ink); background: var(--cream2); }
+  progress::-webkit-progress-bar { background: var(--cream2); } progress::-webkit-progress-value { background: var(--pink2); }
+  progress::-moz-progress-bar { background: var(--pink2); }
+  #status { margin: 12px 0 0; min-height: 1.6em; font-weight: 700; }
+  #status.good { color: var(--good); } #status.bad { color: var(--bad); }
+  .pkg { color: var(--muted); font-size: 12px; margin: 10px 0 0; overflow-wrap: anywhere; }
+  details { margin: 12px 0 0; } summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+  pre { color: var(--muted); font-size: 12px; white-space: pre-wrap; max-height: 180px; overflow: auto; margin: 8px 0 0; }
+  pre.cmd { background: var(--cream2); color: var(--ink); padding: 10px 12px; border: 2px solid var(--ink); max-height: none; }
+  ol { margin: 0 0 16px; padding-left: 22px; } li { margin: 0 0 4px; }
+  /* how it is played */
+  table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--cream); border: 3px solid var(--ink); }
+  td { border-top: 1px solid #c9bfa8; padding: 7px 10px; vertical-align: top; }
+  td:first-child { white-space: nowrap; font-weight: 700; width: 1%; }
+  td:first-child span { display: inline-block; background: var(--cream2); border: 2px solid var(--ink); padding: 0 6px; }
+  .shots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0 0; }
+  .shots figure { margin: 0; } .shots img { width: 100%; height: auto; border: 3px solid var(--ink); display: block; }
+  .shots figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  audio { width: 100%; margin: 6px 0 0; }
+  .demo ol { font-size: 14px; }
+  /* the lore */
+  .lore { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .entry { background: var(--cream); border: 3px solid var(--ink); padding: 12px 14px; }
+  .entry h3 { color: var(--pink2); }
+  .entry h3 i { color: var(--muted); font-weight: 400; font-size: 13px; }
+  .entry p { margin: 0; font-size: 14px; }
+  .entry a { font-size: 13px; }
+  .signs { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+  .signs span { background: var(--cream2); border: 2px solid var(--ink); padding: 4px 10px; font-size: 13px; font-weight: 700;
+                border-radius: 10px 10px 10px 2px; }
+  footer { margin-top: 56px; border-top: 3px solid var(--ink); padding-top: 16px; color: var(--muted); font-size: 13px; }
+  footer p { margin: 0 0 8px; }
+  .coffee { margin: 20px 0 0; text-align: center; }
+  .coffee a { display: inline-block; padding: 10px 18px; border: 3px solid var(--ink); background: #ffdd00; color: var(--ink);
+              font-weight: 700; text-decoration: none; }
+  @media (max-width: 760px) {
+    .fm1 { grid-template-columns: 1fr; }
+    .facts { grid-template-columns: repeat(2, 1fr); }
+    .shots { grid-template-columns: repeat(2, 1fr); }
+    .lore { grid-template-columns: 1fr; }
+    td:first-child { white-space: normal; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1><img src="screens/logo.png" width="960" height="96" alt="HAMSTERSYNTH"></h1>
+  <p class="tag">Firmware for M-VAVE FM-1: åtte hamstere som synger, en sequencer, en trommehamster og
+    THALLHAMSTERGRINDCORE.</p>
+
+  <div class="cta">
+    <a href="#prov">▶ Prøv i nettleseren</a>
+    <a href="#installer">Installer på FM-1</a>
+    <a class="alt" href="#demo">♪ Hør demoen</a>
+    <a class="alt" href="#lore">Hamsterleksikon</a>
+  </div>
+
+  <p class="warn" role="note"><b>⚠ Ikke prøvd på en ekte FM-1 ennå.</b> HamsterSynth bygges og testes ved hver
+    endring, i CI og i FM-1-emulatoren, med hele panelet, men er ikke prøvd på en fysisk enhet. Installer på eget
+    ansvar.</p>
+
+  <div class="hero">
+    <img src="screens/sign.png" width="480" height="480" alt="De åtte hamsterne på FM-1-skjermen; den brune hamsteren sier «Ikke si: bare en hamster» i en snakkeboble; under dem 16 steg og sekvensene A til H">
+    <img src="screens/tromster.png" width="480" height="480" alt="Tromster-siden: en oransje hamster bak et trommesett med stikkene i været, og trommerutenettet for kick, snare, hat og clap">
+  </div>
+
+  <p class="lead">Hamster Piano var en nettside: åtte hamstere du kunne trykke på, en sequencer, en trommehamster og
+    en knapp som gjorde alt mye tyngre. Nå bor hamsterne i FM-1. De synger med egne stemmer, piper når de begynner, og
+    sitter fra venstre til høyre i stereo. Lyden er laget fra bunnen i firmwaren; det finnes ikke ett eneste opptak i
+    den.</p>
+
+  <blockquote>Hamster kan også brukes til å <a href="https://jhf.no/musikklubben/hamsterpiano/">lage fin musikk</a>.
+    <cite>— <a href="https://jhf.no/musikklubben/propanpedia/doku.php?id=hamster">Propanpedia: Hamster</a></cite></blockquote>
+
+  <div class="facts">
+    <div class="fact"><b>8</b><span>hamstere, hver med sin stemme, vokal og trille</span></div>
+    <div class="fact"><b>8 × 16</b><span>steg: sekvensene A–H, og en song av dem</span></div>
+    <div class="fact"><b>4 × 4</b><span>trommer og lyder, med hamstersettet</span></div>
+    <div class="fact"><b>0</b><span>opptak: alt du hører er syntese</span></div>
+  </div>
+
+  <h2 id="prov">Prøv i nettleseren</h2>
+  <div class="app" id="app">
+    <div class="fm1">
+      <div>
+        <div class="scr"><canvas id="lcd" width="480" height="480" aria-label="FM-1-skjermen"></canvas>
+          <button class="start" id="start">▶ Start</button></div>
+        <div class="kbd" id="keys" aria-label="Klaviaturet, F3 til G5"></div>
+      </div>
+      <div>
+        <div class="ctl" aria-label="Knappene">
+          <button data-btn="12">PLAY<small>spill / stopp</small></button>
+          <button data-btn="13">REC<small>ta opp</small></button>
+          <button data-btn="6">EDIT<small>rediger steg</small></button>
+          <button data-btn="3">SEL<small>pause · hold: slett</small></button>
+          <button data-btn="11">SEQ<small>Tromster</small></button>
+          <button data-btn="2">FX<small>HAMSTERCORE</small></button>
+          <button data-btn="7">GLO<small>song · hold: rekke</small></button>
+          <button data-btn="8">HOME<small>hjem · hold: hjelp</small></button>
+          <button data-btn="4">ENV<small>angre</small></button>
+          <button data-btn="5">LFO<small>tilfeldig</small></button>
+          <button data-btn="10">ARP<small>arpeggio</small></button>
+          <button data-btn="9">SAVE<small>lagre · kopier</small></button>
+          <button data-btn="0">OCT −<small>oktav ned</small></button>
+          <button data-btn="1">OCT +<small>oktav opp</small></button>
+        </div>
+        <div class="encs" aria-label="Dreieknappene">
+          <div class="enc"><button data-enc="0" data-n="-1" aria-label="SELECT ned">−</button><span>SELECT</span><button data-enc="0" data-n="1" aria-label="SELECT opp">+</button></div>
+          <div class="enc"><button data-enc="6" data-n="-1" aria-label="PRESETS ned">−</button><span>PRESETS</span><button data-enc="6" data-n="1" aria-label="PRESETS opp">+</button></div>
+          <div class="enc"><button data-enc="1" data-n="-1" aria-label="Tempo ned">−</button><span>TEMPO</span><button data-enc="1" data-n="1" aria-label="Tempo opp">+</button></div>
+          <div class="enc"><button data-enc="2" data-n="-1" aria-label="Knott 1 ned">−</button><span>KNOTT 1</span><button data-enc="2" data-n="1" aria-label="Knott 1 opp">+</button></div>
+          <div class="enc"><button data-enc="3" data-n="-1" aria-label="Knott 2 ned">−</button><span>KNOTT 2</span><button data-enc="3" data-n="1" aria-label="Knott 2 opp">+</button></div>
+          <div class="enc"><button data-enc="4" data-n="-1" aria-label="Knott 3 ned">−</button><span>KNOTT 3</span><button data-enc="4" data-n="1" aria-label="Knott 3 opp">+</button></div>
+          <div class="enc"><button data-enc="5" data-n="-1" aria-label="Knott 4 ned">−</button><span>KNOTT 4</span><button data-enc="5" data-n="1" aria-label="Knott 4 opp">+</button></div>
+        </div>
+        <div class="bar">
+          <button id="b-pause">Pause</button>
+          <label>Volum <input type="range" id="vol" min="0" max="100" value="70"></label>
+        </div>
+      </div>
+    </div>
+    <p id="appstatus">Trykk Start: det er firmwaren selv som kjører her, kompilert for nettleseren.</p>
+    <p class="small">Tastaturet spiller også: <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> <kbd>F</kbd> <kbd>G</kbd>
+      <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> er de åtte hamsterne, <kbd>W</kbd> <kbd>E</kbd> <kbd>T</kbd> <kbd>Y</kbd>
+      trommene, <kbd>mellomrom</kbd> PLAY, <kbd>R</kbd> REC, <kbd>Z</kbd> <kbd>X</kbd> oktav, piltastene SELECT og
+      PRESETS. Hold en knapp inne for det den gjør når den holdes.</p>
+  </div>
+
+  <h2 id="demo">Hør den</h2>
+  <div class="box demo">
+    <audio controls preload="none" src="demo/hamstersynth-demo.mp3"></audio>
+    <ol>
+      <li><b>0:00</b> De åtte hamsterne, én og én.</li>
+      <li><b>0:05</b> Trommene spilt for hånd.</li>
+      <li><b>0:06</b> Sekvens A, og Tromster som kommer inn.</li>
+      <li><b>0:22</b> En song på fire sekvenser, med glide, arpeggio og ratchet, og hamstersettet (snus og pip).</li>
+      <li><b>0:38</b> THALLHAMSTERGRINDCORE.</li>
+      <li><b>0:46</b> Hamsterne tar en akkord.</li>
+    </ol>
+    <p class="small">Firmwarens egen kode, kjørt på en datamaskin: dette er lyden FM-1 sender over USB.</p>
+  </div>
+
+  <h2 id="installer">Installer</h2>
+  <div class="box">
+    <ol>
+      <li>Koble FM-1 til datamaskinen med en USB-kabel som overfører data, og slå den på.</li>
+      <li>Åpne siden i Chrome eller Edge på en datamaskin, og lukk andre programmer som bruker MIDI.</li>
+      <li>Trykk <b>Installer</b> og tillat MIDI når nettleseren spør. Det tar omtrent et minutt.</li>
+    </ol>
+    <button id="go" disabled>Installer</button>
+    <progress id="bar" max="100" value="0"></progress>
+    <p id="status">Henter firmwaren…</p>
+    <p class="pkg" id="pkg"></p>
+    <details><summary>Logg</summary><pre id="log"></pre></details>
+  </div>
+  <p class="small">Ikke trekk ut kabelen mens den skriver. Blir en installasjon avbrutt, starter FM-1 i
+    oppdateringsmodus: trykk Installer igjen, så fullfører siden den. Går noe galt: hold <b>OCT−</b> mens du slår på
+    FM-1, så starter den i USB-redning, der en installasjon alltid virker. For å gå tilbake til den offisielle
+    firmwaren: M-VAVEs egen oppdaterer, eller <a href="https://thefirmwarehub.com">The Firmware Hub</a>.</p>
+  <p class="small">Fra en datamaskin med Python: <a id="dl" href="#">last ned firmwarefilen</a> (<code>.fwsc</code>) og</p>
+  <pre class="cmd">python3 tools/fm1_install.py hamstersynth.fwsc</pre>
+
+  <h2 id="spill">Slik spiller du</h2>
+  <table>
+    <tr><td><span>Hvite tangenter</span></td><td>Hamsterne. C4–C5 er de åtte, F3–B3 de samme en oktav ned, D5–G5 en oktav opp.</td></tr>
+    <tr><td><span>Svarte tangenter</span></td><td>C#4 D#4 F#4 G#4: kick, snare, hat og clap.</td></tr>
+    <tr><td><span>PLAY</span></td><td>Spill og stopp sekvensen, eller songen når SONG er på.</td></tr>
+    <tr><td><span>REC</span></td><td>Opptak steg for steg; SEL legger inn pause. Mens det spiller: tonen havner i steget du hører den i.</td></tr>
+    <tr><td><span>EDIT</span></td><td>Rediger steget: tangentene bytter tonen, knott 1–4 gir glide, arpeggio (+7/+12), aksent og ratchet (×1–4), OCT −/+ stegets oktav.</td></tr>
+    <tr><td><span>SELECT · PRESETS</span></td><td>Velg steg · velg sekvens A–H.</td></tr>
+    <tr><td><span>ALGORITHM</span></td><td>Tempo, 50–220 BPM.</td></tr>
+    <tr><td><span>SEQ</span></td><td>Tromster: trommehamsteren. F3–B3 velger tromme, C4–C5 setter stegene, knott 1–4 velger lyd (4 er hamstersettet: kinnpop, frøknas, snus og pip).</td></tr>
+    <tr><td><span>FX</span></td><td>THALLHAMSTERGRINDCORE: en oktav ned, vreng, dobbelt tempo. Hold: hamsterstemmen eller sidens stemme.</td></tr>
+    <tr><td><span>GLO</span></td><td>SONG av og på. Hold: song-siden, der C4–C5 skriver A–H.</td></tr>
+    <tr><td><span>ENV · LFO</span></td><td>Angre · en tilfeldig sekvens.</td></tr>
+    <tr><td><span>HOME</span></td><td>Hjem; hjemme sier en hamster noe klokt. Hold: hjelp på skjermen.</td></tr>
+    <tr><td><span>KNOTT 1–4</span></td><td>Swing, hamsternivå, Tromster-nivå, MIDI-kanal.</td></tr>
+    <tr><td><span>MIDI og USB</span></td><td>Noter inn og ut, MIDI-klokke inn (start, stopp, synk). FM-1 er også et lydkort: ta opp det den spiller.</td></tr>
+  </table>
+  <div class="shots">
+    <figure><img src="screens/home.png" width="480" height="480" alt="Hjemmesiden med hamsterne og stegene"><figcaption>Hamsterne og stegene, i slag på fire</figcaption></figure>
+    <figure><img src="screens/edit.png" width="480" height="480" alt="Redigering av et steg"><figcaption>REDIGER: steget i ord</figcaption></figure>
+    <figure><img src="screens/song.png" width="480" height="480" alt="Song-siden med sekvensene som fargede brikker"><figcaption>Songen</figcaption></figure>
+    <figure><img src="screens/help.png" width="480" height="480" alt="Hjelpesiden med knappene tegnet som taster"><figcaption>Hold HOME: hjelp</figcaption></figure>
+  </div>
+
+  <h2 id="lore">Hamsterleksikon</h2>
+  <p>Hamsterne kommer fra Musikklubben, og det samme gjør det de sier. Alt dette, og mye mer, står i
+    <a href="https://jhf.no/musikklubben/propanpedia/">Propanpedia</a>.</p>
+  <div class="lore">
+    <div class="entry"><h3>Hamster <i>Loddrettus erectus</i></h3>
+      <p>Ofte et dyr, men aller mest kjent som produksjonsmaskin. Må derfor godkjennes etter maskindirektivet, ISO 9001
+        og FSSC 22000. Brukes også til å lage fin musikk.</p>
+      <a href="https://jhf.no/musikklubben/propanpedia/doku.php?id=hamster">Les mer →</a></div>
+    <div class="entry"><h3>Loddrett <i>±1 frø</i></h3>
+      <p>Den ideelle aksen gjennom en hamster, fra toppen av hodet, gjennom nesen og ned til tyngdepunktet. Den er perfekt
+        innenfor ±1 frø. Målt i stor solsikkefrøenhet: 1 cm ≈ 1 SSFE.</p>
+      <a href="https://jhf.no/musikklubben/propanpedia/doku.php?id=loddrett">Les mer →</a></div>
+    <div class="entry"><h3>Hamstermelk</h3>
+      <p>En erstatning for vann i tøffe tider. Kritikere har kalt den «for rund i smaken til å være trygg». Etter to
+        desiliter må hamsteren hvile i fem timer.</p>
+      <a href="https://jhf.no/musikklubben/propanpedia/doku.php?id=hamstermelk">Les mer →</a></div>
+    <div class="entry"><h3>Hamsterdam</h3>
+      <p>Et geografisk uklart fellesskap der hamstere, melk og sosial eksklusivitet blandes. Opphavet til uttrykket
+        «neppe bedre enn hamstermelk».</p>
+      <a href="https://jhf.no/musikklubben/propanpedia/doku.php?id=hamsterdam">Les mer →</a></div>
+    <div class="entry"><h3>Kontorrotte</h3>
+      <p>En hamster som ikke lenger lager melk. Den skjelver så mye under melking at alt som kommer ut er milkshake.</p>
+      <a href="https://jhf.no/musikklubben/propanpedia/doku.php?id=kontorrotte">Les mer →</a></div>
+    <div class="entry"><h3>Kinnsirkelen</h3>
+      <p>Hamsterens største lagringskapasitet for nøtter og vitale løgner. Forklarer både volum, tyngde og mistenkelig
+        selvtillit. Avvik fra sirkelformen skyldes vanligvis snacks.</p>
+      <a href="https://jhf.no/musikklubben/propanpedia/doku.php?id=loddrett">Les mer →</a></div>
+    <div class="entry"><h3>Ordensregler for hamstersvikere</h3>
+      <p>For dem som har sviktet hamsteren, for eksempel ved å si «bare en hamster». Frø tilhører hamsteren. Tavlen
+        skal ikke diskuteres. Søles det melk, hentes papir. Reglenes viktigste setning: <i>Ikke gjør det igjen.</i></p>
+      <a href="https://jhf.no/musikklubben/propanpedia/doku.php?id=ordensregler_hamstersvikere">Les mer →</a></div>
+    <div class="entry"><h3>Hamstervitnet</h3>
+      <p>Et særlig problematisk bevis i Veggretten. «Hvor er hamsteren?» brukes om ethvert avgjørende bevis som viser
+        seg å ha vært et dyr, et møbel eller en misforståelse.</p>
+      <a href="https://jhf.no/musikklubben/propanpedia/doku.php?id=veggen">Les mer →</a></div>
+  </div>
+  <p>På FM-1 sier hamsterne noe av dette selv, i en snakkeboble, når du trykker HOME:</p>
+  <div class="signs">
+    <span>IKKE SI «BARE EN HAMSTER».</span><span>AKSEN HOLDER INNENFOR ±1 FRØ.</span><span>KONTORROTTA LAGER MILKSHAKE.</span>
+    <span>TAVLEN SKAL IKKE DISKUTERES.</span><span>I HAMSTERDAM</span><span>BARE HENT PAPIR.</span><span>HVOR ER HAMSTEREN?</span>
+    <span>FOR RUND I SMAKEN TIL Å VÆRE TRYGG.</span><span>GODKJENT ETTER MASKINDIREKTIVET.</span><span>OI, SE! ETT HAMSTER!</span>
+  </div>
+
+  <h2 id="om">Om HamsterSynth</h2>
+  <p>HamsterSynth bygger på nettsiden <a href="https://jhf.no/musikklubben/hamsterpiano/">Hamster Piano</a>. Den er
+    laget på <a href="https://github.com/zvenson/dinghy">Dinghy</a> (zvenson), som bygger på
+    <a href="https://github.com/hugelton/Felucca">Felucca</a> (Leo Kuroshita, Hügelton Instruments) og
+    <a href="https://github.com/isod89/sloop-fm1">SLOOP</a> (isod89). Installasjonen på denne siden er SLOOPs. Den er
+    testet i <a href="https://github.com/joakimeriksson/fm1-emu">fm1-emu</a> (joakimeriksson).</p>
+  <p>Kildekoden er fri (GPL-3.0): <a href="https://github.com/joakimskurk/fm1hamstersynth">github.com/joakimskurk/fm1hamstersynth</a>.
+    Fra samme hylle: <a href="https://github.com/joakimskurk/fm1clock">FM-1 Clock</a>,
+    <a href="https://github.com/joakimskurk/fm1vavehero">VaveHero</a>,
+    <a href="https://github.com/joakimskurk/fm1roboseq">RoboSeq</a> og
+    <a href="https://github.com/joakimskurk/fm1mello">SkurkyMello</a>.</p>
+
+  <p class="coffee"><a href="https://buymeacoffee.com/skurk">☕ Spander en kaffe</a></p>
+
+  <footer>
+    <p>«M-VAVE» og «FM-1» tilhører sine eiere. HamsterSynth er et fanprosjekt, ikke et offisielt M-VAVE-produkt.
+      Installering av firmware skjer på eget ansvar.</p>
+  </footer>
+</main>
+<script type="module" src="app/hamster.js"></script>
+<script type="module">
+/*LIB*/
+const $ = (id) => document.getElementById(id);
+const meta = /*META*/;
+const TEXT = {
+  nomidi: "Denne nettleseren kan ikke snakke med FM-1. Åpne siden i Chrome eller Edge på en datamaskin.",
+  loadfail: "Kunne ikke hente firmwaren: ", badpkg: "Firmwarefilen er skadet. Last inn siden på nytt.",
+  start: "Starter", verify: "Sjekker", loader: "Setter FM-1 i oppdateringsmodus", write: "Skriver",
+  reboot: "Starter på nytt", done: "Ferdig: HamsterSynth er installert.",
+  stopped: "Stoppet. Koble USB-kabelen fra og til igjen, og trykk Installer på nytt.",
+  error: "Feil: ",
+  denied: "MIDI (SysEx) ble ikke tillatt. Tillat MIDI i nettstedsinnstillingene (i adressefeltet), og trykk Installer på nytt.",
+  notfound: "Fant ikke FM-1. Sjekk USB-kabelen (en datakabel, rett i datamaskinen), lukk andre programmer som bruker MIDI, og trykk Installer på nytt.",
+  model: "Enheten som er koblet til, er ikke en FM-1.",
+  lost: "USB-tilkoblingen ble brutt. Koble til igjen og trykk Installer på nytt.",
+  noloader: "Fant ikke FM-1 i oppdateringsmodus. Koble USB-kabelen fra og til, og trykk Installer igjen (den blir i oppdateringsmodus til den er ferdig).",
+  noreturn: "FM-1 kom ikke tilbake. Slå den av og på.",
+  mismatch: "Skrevet, men FM-1 melder en annen versjon: ",
+  foreign: "FM-1 er i oppdateringsmodusen til en annen firmware. Fullfør den med dens egen oppdaterer (M-UPGRADE), og trykk Installer igjen: ",
+  leave: "Skriver. Ikke lukk siden.",
+};
+const say = (k, arg = "", cls = "") => { const s = $("status"); s.textContent = (TEXT[k] ?? k) + arg; s.className = cls; };
+const log = (t) => { $("log").textContent += t + "\n"; };
+let image = null, writing = false;
+const lock = (on) => { writing = on; $("go").disabled = on || !image; };
+window.addEventListener("beforeunload", (e) => { if (writing) { e.preventDefault(); e.returnValue = TEXT.leave; } });
+$("dl").href = meta.pkg;
+$("dl").setAttribute("download", meta.pkg.split("/").pop());
+$("pkg").textContent = `HamsterSynth ${meta.version} · ${meta.product} · SHA-256 ${meta.sha256}`;
+(async () => {
+  try {
+    const sha = async (b) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", b))].map((x) => x.toString(16).padStart(2, "0")).join("");
+    const get = async (cache) => {
+      const r = await fetch(meta.pkg, { cache });
+      if (!r.ok) throw new Error(`${meta.pkg}: HTTP ${r.status}`);
+      return new Uint8Array(await r.arrayBuffer());
+    };
+    let pkg = await get("no-cache");
+    const check = self.crypto && crypto.subtle;
+    if (check && (await sha(pkg)) !== meta.sha256) pkg = await get("reload");
+    if (productOf(pkg) !== meta.product || (check && (await sha(pkg)) !== meta.sha256)) { say("badpkg", "", "bad"); return; }
+    image = logicalImage(pkg);
+    if (!navigator.requestMIDIAccess) { say("nomidi", "", "bad"); return; }
+    say(`Klar: HamsterSynth ${meta.version}.`);
+    lock(false);
+  } catch (e) { say("loadfail", e.message, "bad"); }
+})();
+const step = (k, a) => {
+  const total = 74 + Math.ceil((image ? image.length : 0) / 512);
+  log(`${k} ${a ?? ""}`);
+  if (k === "verify") $("bar").value = Math.min(100, (a / total) * 100);
+  if (k === "write") $("bar").value = Math.min(100, ((74 + a) / total) * 100);
+  if (k === "done") { $("bar").value = 100; say("done", "", "good"); return; }
+  if (["start", "verify", "loader", "write", "reboot"].includes(k)) say(k);
+};
+$("go").addEventListener("click", async () => {
+  if (writing) return;
+  lock(true);
+  let midi;
+  try { midi = await navigator.requestMIDIAccess({ sysex: true }); }
+  catch (e) { say("denied", "", "bad"); lock(false); return; }
+  try {
+    const up = new Updater(midi, log);
+    const ota = await up.find((id) => /^ota-/i.test(id.model), true);   /* an install cut off: finish it */
+    if (ota) {
+      ota.link.close();
+      if (await up.resume(image, step)) say("done", "", "good"); else say("stopped", "", "bad");
+    } else {
+      await up.install(image, meta.product, step);
+    }
+  } catch (e) {
+    if (e && e.code && TEXT[e.code]) say(e.code, e.detail || "", "bad"); else say("error", e && e.message, "bad");
+    log(String(e && e.stack || e));
+  }
+  lock(false);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+# Every push and pull request: HamsterSynth's host tests, Dinghy's platform tests and the real FM-1 package, built and
+# attested by the shared zvenson/fm1-build workflow (JieLi toolchain + AC79 SDK), as VaveHero, RoboSeq and SkurkyMello
+# do. Then fm1-emu runs the package: that it sings, how much of the chip its sound takes, the whole panel
+# (tools/emu_ci.sh). A tag vX.Y also publishes the release.
+name: build
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: zvenson/fm1-build/.github/workflows/build.yml@v1
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    with:
+      # a tag vX.Y: the release build (build/hamstersynth-X.Y.fwsc, version X.Y), and the tests run on a copy of those
+      # very bytes under the name they know; the release carries the one package
+      build: |
+        if [ "$GITHUB_REF_TYPE" = tag ]; then
+          ./build.sh --release "${GITHUB_REF_NAME#v}" && cp "build/hamstersynth-${GITHUB_REF_NAME#v}.fwsc" build/hamstersynth.fwsc
+        else ./build.sh; fi
+      test: >-
+        python3 -m pip install -q numpy && sh tests/run_hamster.sh && sh tests/run_tests.sh && sh tools/emu_ci.sh
+      packages: ${{ github.ref_type == 'tag' && 'build/hamstersynth-*.fwsc' || 'build/hamstersynth*.fwsc' }}
+
+  # The site (GitHub Pages, https://joakimskurk.github.io/fm1hamstersynth/): HamsterSynth's page in Norwegian, the
+  # firmware in the browser (WebAssembly) and its installer (Web MIDI), with the package this run built and tested
+  # (web/make_site.py). From the default branch only.
+  # GitHub Pages has to be switched on once, by the repository's owner: Settings -> Pages -> Build and deployment ->
+  # Source: GitHub Actions. Until then this job says so and publishes nothing (the build stays green).
+  # A release (a tag vX.Y on this commit, its release published): the page offers that release's own package and
+  # version; run the build once more on the default branch after the tag (Actions -> build -> Run workflow).
+  site:
+    needs: build
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+      - name: GitHub Pages switched on?
+        id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/pages" >/dev/null 2>&1; then
+            echo "on=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=GitHub Pages is off::Settings -> Pages -> Build and deployment -> Source: GitHub Actions, then run the build again"
+            echo "on=0" >> "$GITHUB_OUTPUT"
+          fi
+      - name: The release of this commit, if it has one (its package, its version)
+        id: rel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch -q --tags origin || true
+          tag=$(git tag --points-at "$GITHUB_SHA" -l 'v*' | sort -V | tail -1)
+          if [ -n "$tag" ] && gh release download "$tag" -p 'hamstersynth-*.fwsc' -D build/release 2>/dev/null; then
+            echo "pkg=$(ls build/release/hamstersynth-*.fwsc | head -1)" >> "$GITHUB_OUTPUT"
+            echo "ver=${tag#v}" >> "$GITHUB_OUTPUT"
+            echo "::notice title=The release::the page offers $tag"
+          else
+            echo "pkg=build/hamstersynth.fwsc" >> "$GITHUB_OUTPUT"
+            echo "ver=dev-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: HamsterSynth for the browser (WebAssembly)
+        run: |
+          command -v wasm-ld >/dev/null || command -v wasm-ld-18 >/dev/null || \
+            { sudo apt-get update -q && sudo apt-get install -y -q lld; }
+          APP_VER="${{ steps.rel.outputs.ver }}" sh web/app/build.sh build/web/hamstersynth.wasm
+      - name: The site
+        run: |
+          python3 web/make_site.py "${{ steps.rel.outputs.pkg }}" "${{ steps.rel.outputs.ver }}" _site build/web/hamstersynth.wasm
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.pages.outputs.on == '1'
+        with:
+          path: _site
+      - id: deploy
+        if: steps.pages.outputs.on == '1'
+        uses: actions/deploy-pages@v4
