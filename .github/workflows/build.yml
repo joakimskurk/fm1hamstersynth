@@ -91,10 +91,27 @@ jobs:
       - name: The site
         run: |
           python3 web/make_site.py "${{ steps.rel.outputs.pkg }}" "${{ steps.rel.outputs.ver }}" _site build/web/hamstersynth.wasm
+      # (named per attempt: a re-run would otherwise find the earlier attempt's too, and deploy-pages refuses two)
       - uses: actions/upload-pages-artifact@v3
         if: steps.pages.outputs.on == '1'
         with:
           path: _site
+          name: github-pages-${{ github.run_attempt }}
+      # (the run's list of artifacts can lag behind an upload by a moment: deploy-pages looks once, so wait for it)
+      - name: The site's artifact, seen by the API
+        if: steps.pages.outputs.on == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NAME: github-pages-${{ github.run_attempt }}
+        run: |
+          for i in $(seq 1 30); do
+            n=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?name=$NAME" --jq '.total_count' || echo 0)
+            [ "$n" -ge 1 ] && { echo "$NAME: there"; exit 0; }
+            sleep 2
+          done
+          echo "::warning::$NAME is not listed yet; deploying all the same"
       - id: deploy
         if: steps.pages.outputs.on == '1'
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-${{ github.run_attempt }}
