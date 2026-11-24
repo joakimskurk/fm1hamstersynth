@@ -55,17 +55,26 @@
                 font-family: inherit; border: 3px solid var(--ink); background: var(--yellow); color: var(--ink);
                 cursor: pointer; box-shadow: 0 4px 0 var(--ink); }
   .ctl { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
-  .ctl button, .enc button { font: 700 13px/1.2 inherit; font-family: inherit; padding: 8px 6px; border: 2px solid #050607;
+  .ctl button { font: 700 13px/1.2 inherit; font-family: inherit; padding: 8px 6px; border: 2px solid #050607;
                 background: var(--blue3); color: var(--cream2); cursor: pointer; touch-action: none; user-select: none; }
   .ctl button small { display: block; font-size: 10px; font-weight: 400; color: #c7cfcc; }
   .ctl button.lit { background: var(--pink); color: var(--ink); }
   .ctl button.lit small { color: var(--ink2); }
-  .ctl button.held, .enc button:active { transform: translateY(1px); filter: brightness(1.15); }
-  .encs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 10px 0 0; }
-  .enc { display: flex; align-items: center; justify-content: space-between; gap: 4px; background: #0f2530;
-         padding: 4px 6px; font-size: 12px; }
-  .enc span { flex: 1; text-align: center; }
-  .enc button { padding: 4px 9px; }
+  .ctl button.held { transform: translateY(1px); filter: brightness(1.15); }
+  .knobs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 6px; margin: 14px 0 0; }
+  .knobs .kn:nth-child(4) { grid-column: 1; }
+  .kn { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; text-align: center; line-height: 1.2; }
+  .kn small { display: block; font-size: 10px; color: #c7cfcc; }
+  .knob { width: 54px; height: 54px; border-radius: 50%; padding: 0; cursor: grab; touch-action: none; user-select: none;
+          border: 2px solid #050607; position: relative;
+          background: radial-gradient(circle at 35% 30%, #4a5860 0, #222b31 55%, #12181c 100%);
+          box-shadow: 0 3px 0 #050607, inset 0 0 0 4px #1a2126; }
+  .knob i { position: absolute; inset: 0; transform: rotate(var(--a, 0deg)); transition: transform .05s linear; }
+  .knob i::after { content: ""; position: absolute; left: 50%; top: 6px; width: 4px; height: 14px; margin-left: -2px;
+                   border-radius: 2px; background: var(--cream2); }
+  .knob:active, .knob.turning { cursor: grabbing; }
+  .knob.turning i::after, .knob:focus-visible i::after { background: var(--yellow); }
+  .knob:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
   .kbd { position: relative; height: 70px; margin: 14px 0 0; touch-action: none; user-select: none; }
   .kbd button { position: absolute; top: 0; border: 1px solid #050607; border-radius: 0 0 4px 4px; padding: 0; cursor: pointer; }
   .kbd .kw { height: 100%; background: #e8e2d4; }
@@ -78,7 +87,7 @@
   .bar input { accent-color: var(--yellow); vertical-align: middle; }
   #appstatus { margin: 10px 0 0; font-size: 14px; color: var(--yellow); }
   .app .small { color: #c7cfcc; }
-  .app:not(.on) .ctl, .app:not(.on) .encs, .app:not(.on) .kbd { opacity: .45; pointer-events: none; }
+  .app:not(.on) .ctl, .app:not(.on) .knobs, .app:not(.on) .kbd { opacity: .45; pointer-events: none; }
   kbd { background: var(--cream2); color: var(--ink); border: 1px solid var(--ink); border-bottom-width: 2px; padding: 0 4px; font: inherit; font-size: 12px; }
   /* install */
   .box { background: var(--cream); border: 3px solid var(--ink); padding: 18px; }
@@ -155,14 +164,14 @@
           <button data-btn="0">OCT −<small>oktav ned</small></button>
           <button data-btn="1">OCT +<small>oktav opp</small></button>
         </div>
-        <div class="encs" aria-label="Dreieknappene">
-          <div class="enc"><button data-enc="0" data-n="-1" aria-label="SELECT ned">−</button><span>SELECT</span><button data-enc="0" data-n="1" aria-label="SELECT opp">+</button></div>
-          <div class="enc"><button data-enc="6" data-n="-1" aria-label="PRESETS ned">−</button><span>PRESETS</span><button data-enc="6" data-n="1" aria-label="PRESETS opp">+</button></div>
-          <div class="enc"><button data-enc="1" data-n="-1" aria-label="Tempo ned">−</button><span>TEMPO</span><button data-enc="1" data-n="1" aria-label="Tempo opp">+</button></div>
-          <div class="enc"><button data-enc="2" data-n="-1" aria-label="Knott 1 ned">−</button><span>KNOTT 1</span><button data-enc="2" data-n="1" aria-label="Knott 1 opp">+</button></div>
-          <div class="enc"><button data-enc="3" data-n="-1" aria-label="Knott 2 ned">−</button><span>KNOTT 2</span><button data-enc="3" data-n="1" aria-label="Knott 2 opp">+</button></div>
-          <div class="enc"><button data-enc="4" data-n="-1" aria-label="Knott 3 ned">−</button><span>KNOTT 3</span><button data-enc="4" data-n="1" aria-label="Knott 3 opp">+</button></div>
-          <div class="enc"><button data-enc="5" data-n="-1" aria-label="Knott 4 ned">−</button><span>KNOTT 4</span><button data-enc="5" data-n="1" aria-label="Knott 4 opp">+</button></div>
+        <div class="knobs" aria-label="Knottene: dra, rull eller bruk piltastene">
+          <div class="kn"><button class="knob" data-enc="0" aria-label="SELECT"><i></i></button><span>SELECT</span></div>
+          <div class="kn"><button class="knob" data-enc="6" aria-label="PRESETS"><i></i></button><span>PRESETS</span></div>
+          <div class="kn"><button class="knob" data-enc="1" aria-label="ALGORITHM (tempo)"><i></i></button><span>ALGORITHM<small>tempo</small></span></div>
+          <div class="kn"><button class="knob" data-enc="2" aria-label="K1 (swing)"><i></i></button><span>K1<small>swing</small></span></div>
+          <div class="kn"><button class="knob" data-enc="3" aria-label="K2 (hamstere)"><i></i></button><span>K2<small>hamstere</small></span></div>
+          <div class="kn"><button class="knob" data-enc="4" aria-label="K3 (trommer)"><i></i></button><span>K3<small>trommer</small></span></div>
+          <div class="kn"><button class="knob" data-enc="5" aria-label="K4 (MIDI)"><i></i></button><span>K4<small>MIDI</small></span></div>
         </div>
         <div class="bar">
           <button id="b-pause">Pause</button>
@@ -172,7 +181,7 @@
     </div>
     <p id="appstatus">Trykk Start.</p>
     <p class="small"><kbd>A</kbd>–<kbd>K</kbd> hamstere · <kbd>W</kbd> <kbd>E</kbd> <kbd>T</kbd> <kbd>Y</kbd> trommer ·
-      <kbd>mellomrom</kbd> play</p>
+      <kbd>mellomrom</kbd> play · knottene: dra eller rull</p>
   </div>
 
   <h2 id="demo">Hør den</h2>

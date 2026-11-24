@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // The site's «Prøv i nettleseren» in Chromium (Playwright): Start loads the firmware into the audio thread, its screen
 // comes up (the logo's blue), a hamster pressed on the computer's keyboard (A: C4) lights its note on the screen, space
-// (PLAY) starts the pattern (the state's bit 0), PLAY again stops it. No page errors.
+// (PLAY) starts the pattern (the state's bit 0), PLAY again stops it. The tempo knob turns by the wheel and by a drag
+// (the tempo on the screen changes). No page errors.
 //
 //   node tests/web/app_page.js SITE_DIR
 const { chromium } = require('playwright');
@@ -40,6 +41,24 @@ server.listen(0, async () => {
   await p.keyboard.press(' ');
   await p.waitForTimeout(400);
   check('space again: it stops', ((await p.evaluate(() => window.__hamster)) & 1) === 0);
+  // the knobs: ALGORITHM (tempo) turned by the wheel, then by a drag: the tempo on the screen changes both times
+  const bpm = () => p.evaluate(() => [...document.getElementById('lcd').getContext('2d').getImageData(190, 412, 100, 36).data].join());
+  const knob = p.locator('.knob[data-enc="1"]');
+  const b0 = await bpm();
+  await knob.hover();
+  for (let i = 0; i < 5; i++) await p.mouse.wheel(0, -100);
+  await p.waitForTimeout(500);
+  const b1 = await bpm();
+  check('the tempo knob, by the wheel: the tempo changes', b1 !== b0);
+  const box = await knob.boundingBox();
+  await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await p.mouse.down();
+  await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 80, { steps: 8 });
+  await p.mouse.up();
+  await p.waitForTimeout(500);
+  check('the tempo knob, dragged down: the tempo changes again', (await bpm()) !== b1);
+  const turned = await knob.evaluate((k) => k.firstElementChild.style.getPropertyValue('--a'));
+  check('its marker turned with it', turned !== '' && turned !== '0deg', turned);
   check('no page errors', !errs.length, errs.join(' '));
   await b.close();
   server.close();

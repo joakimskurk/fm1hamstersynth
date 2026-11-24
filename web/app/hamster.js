@@ -67,8 +67,50 @@ if (app) {
     b.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); held = true; send({ type: 'down', id }); } });
     b.addEventListener('keyup', (e) => { if (e.key === 'Enter' || e.key === ' ') up(); });
   }
-  for (const b of app.querySelectorAll('[data-enc]'))
-    b.addEventListener('click', () => send({ type: 'enc', id: +b.dataset.enc, n: +b.dataset.n }));
+  // the knobs (FM-1's encoders: endless, in detents): drag up or right to turn clockwise, or the wheel, or the arrows
+  // when one has the focus. The marker turns with them; the firmware gets the detents.
+  const knobEls = new Map();
+  for (const k of app.querySelectorAll('.knob')) {
+    const id = +k.dataset.enc;
+    let angle = 0, acc = 0, wheel = 0, drag = null;
+    knobEls.set(id, k);
+    const turn = (n) => {
+      if (!n) return;
+      angle += n * 18;
+      k.firstElementChild.style.setProperty('--a', `${angle}deg`);
+      send({ type: 'enc', id, n });
+    };
+    k.turn = turn;
+    k.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      k.setPointerCapture?.(e.pointerId);
+      drag = { x: e.clientX, y: e.clientY };
+      acc = 0;
+      k.classList.add('turning');
+      k.focus({ preventScroll: true });
+    });
+    k.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      acc += (e.clientX - drag.x) - (e.clientY - drag.y);   // right or up: clockwise
+      drag = { x: e.clientX, y: e.clientY };
+      const n = Math.trunc(acc / 10);                      // a detent per 10 px
+      if (n) { acc -= n * 10; turn(n); }
+    });
+    const end = () => { drag = null; k.classList.remove('turning'); };
+    for (const t of ['pointerup', 'pointercancel', 'lostpointercapture']) k.addEventListener(t, end);
+    k.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const d = e.deltaMode ? e.deltaY * 40 : e.deltaY;       // lines -> pixels
+      if (Math.abs(d) >= 50) { wheel = 0; turn(d < 0 ? 1 : -1); return; }   // a mouse wheel's notch: one detent
+      wheel -= d;                                            // a trackpad: a detent per 40 px; up: clockwise
+      const n = Math.trunc(wheel / 40);
+      if (n) { wheel -= n * 40; turn(n); }
+    }, { passive: false });
+    k.addEventListener('keydown', (e) => {
+      const n = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1, PageUp: 5, PageDown: -5 }[e.key];
+      if (n) { e.preventDefault(); e.stopPropagation(); turn(n); }
+    });
+  }
 
   // the computer's keyboard: a piano's row (A W S E D F T G Y H U J K), space PLAY, R REC, the arrows SELECT and PRESETS
   const KEYMAP = { a: 7, w: 8, s: 9, e: 10, d: 11, f: 12, t: 13, g: 14, y: 15, h: 16, u: 17, j: 18, k: 19, o: 20, l: 21, p: 22 };
@@ -82,7 +124,7 @@ if (app) {
     if (e.repeat) return;
     if (c in KEYMAP) keyDown(KEYMAP[c]);
     else if (c in BTNMAP) send({ type: 'down', id: BTNMAP[c] });
-    else if (c in ENCMAP) send({ type: 'enc', id: ENCMAP[c][0], n: ENCMAP[c][1] });
+    else if (c in ENCMAP) knobEls.get(ENCMAP[c][0]).turn(ENCMAP[c][1]);
   });
   window.addEventListener('keyup', (e) => {
     if (!node) return;
