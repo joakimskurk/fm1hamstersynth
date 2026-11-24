@@ -31,9 +31,8 @@ drummer are drawn anew here, pixel by pixel, after the page's (`tools/ham_sprite
 repository (only measurements of its sound: `tests/ref/ham_features.json`). Every sound is synthesised; no sample is
 in the firmware.
 
-What the hamsters say on the sign, and the page's hamster encyclopaedia, are short sayings after
-[Propanpedia](https://jhf.no/musikklubben/propanpedia/), Musikklubben's own, retold in a few words with links to its
-pages. No text is copied from it at length.
+What the hamsters say on the sign are short sayings after [Propanpedia](https://jhf.no/musikklubben/propanpedia/),
+Musikklubben's own, retold in a few words. No text is copied from it at length.
 
 ## Trademarks
 

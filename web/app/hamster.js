@@ -132,7 +132,7 @@ if (app) {
       node.port.onmessage = (e) => {
         const m = e.data;
         if (m.type === 'frame') { if (m.lcd) draw(m.lcd); lights(m.leds, m.glow); window.__hamster = m.state; }
-        else if (m.type === 'ready') { $('start').hidden = true; app.classList.add('on'); say('Hamsterne er klare. Spill på tangentene, eller trykk PLAY.'); }
+        else if (m.type === 'ready') { $('start').hidden = true; app.classList.add('on'); say('Hamsterne er klare.'); }
         else if (m.type === 'error') say(`Den startet ikke: ${m.message}`);
       };
       node.port.postMessage({ type: 'boot', wasm }, [wasm]);

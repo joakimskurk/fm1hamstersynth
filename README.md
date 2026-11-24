@@ -5,8 +5,8 @@
 Nettsiden *Hamster Piano* (v4.17) som firmware for M-VAVE FM-1: de åtte hamsterne, 16-stegs sequenceren med åtte
 sekvenser (A–H; siden har fire) og song, Tromster og THALLHAMSTERGRINDCORE. Bygget på Dinghy 0.5 (Felucca/SLOOP).
 
-**Nettsiden:** <https://joakimskurk.github.io/fm1hamstersynth/> — prøv den i nettleseren (det er firmwaren selv,
-kompilert til WebAssembly), hør demoen, installer på FM-1 med Web MIDI, og les hamsterleksikonet.
+**Nettsiden:** <https://joakimskurk.github.io/fm1hamstersynth/>. Der kan du prøve den i nettleseren, høre demoen og
+installere den på FM-1.
 
 <p align="center"><img src="docs/screens/ham-screens.png" width="820" alt="Fire skjermbilder: hjem med de åtte hamsterne og stegene, redigering av et steg, Tromster med trommehamsteren, og hjelpen"></p>
 
@@ -19,14 +19,10 @@ kompilert til WebAssembly), hør demoen, installer på FM-1 med Web MIDI, og les
 Tromster, en song på fire sekvenser og THALLHAMSTERGRINDCORE. Det er firmwarens egen kode som spiller, kjørt på en
 datamaskin: `make demo` lager den på nytt, også som video med skjermen (`build/demo/`).
 
-## Hamsterleksikon
+## Hamsterne sier ting
 
-Hamsterne kommer fra Musikklubben, og det samme gjør det de sier. Trykk **HOME** på hjemmesiden, så sier en av dem
-noe nytt i snakkeboblen: «IKKE SI BARE EN HAMSTER», «AKSEN HOLDER INNENFOR ±1 FRØ», «KONTORROTTA LAGER MILKSHAKE»,
-«HVOR ER HAMSTEREN?» og mange flere. Hvor det kommer fra (hamsteren som produksjonsmaskin godkjent etter
-maskindirektivet, loddrett-aksen målt i solsikkefrø, hamstermelk, Hamsterdam, kontorrotta, ordensreglene for
-hamstersvikere og hamstervitnet i Veggretten) står på [nettsiden](https://joakimskurk.github.io/fm1hamstersynth/#lore)
-og i [Propanpedia](https://jhf.no/musikklubben/propanpedia/doku.php?id=hamster).
+Trykk **HOME**, så sier en av hamsterne noe. Mye av det er hentet fra
+[Propanpedia](https://jhf.no/musikklubben/propanpedia/doku.php?id=hamster).
 
 ## Hva er prøvd, og hvordan
 
@@ -174,6 +170,6 @@ lydavbruddet på det meste ca. 22 % av tiden det har.
 | `tools/ham_sprites.py` | Hamsterne og trommehamsteren, tegnet piksel for piksel (26×27 og 56×45, vist 2×2) |
 | `tests/run_hamster.sh`, `tests/ham/`, `tools/emu_hamster.sh` | Testene |
 | `tools/ham_demo.sh`, `tests/scripts/ham/demo.txt`, `tests/ham/demo_song.h` | Lyddemoen: hva som trykkes når, og sangen den spiller (bare i demobygget) |
-| `web/index.html`, `web/make_site.py`, `web/make_og.py` | Nettsiden: installeren, hamsterleksikonet, bildene |
+| `web/index.html`, `web/make_site.py`, `web/make_og.py` | Nettsiden: installeren og bildene |
 | `web/app/` | HamsterSynth i nettleseren: firmwaren kompilert til WebAssembly (`build.sh`), lydtråden (`worklet.js`), panelet (`hamster.js`) |
 | `firmware/hal/`, `firmware/loader/`, `firmware/src/platform.c` … | Plattformen, Dinghy 0.5 ([PLATFORM.md](PLATFORM.md)) |
