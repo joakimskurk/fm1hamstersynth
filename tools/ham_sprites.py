@@ -419,8 +419,9 @@ def arm(g, shoulder, elbow, paw, stick_end, body=None):
             return PAW_S if y > paw[1] else PAW
         d = min(dist(x, y, shoulder, elbow), dist(x, y, elbow, paw))
         if d <= 1.75:
-            up = dist(x, y - 1, shoulder, elbow) > d or dist(x, y - 1, elbow, paw) > d   # (its upper side: light)
-            return FUR["orange"][0] if up and d > .6 else FUR["orange"][1]
+            up = dist(x, y - 1, shoulder, elbow) > d or dist(x, y - 1, elbow, paw) > d   # (its upper side: light,
+            on_body = body and body[y][x]                                              # off the body: over it, the
+            return FUR["orange"][0] if up and d > .6 and not on_body else FUR["orange"][1]   # body's own fur)
         return None
     f = [[fill(x, y) for x in range(DW)] for y in range(DH)]
     for y in range(DH):
