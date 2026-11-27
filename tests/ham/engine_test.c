@@ -4,7 +4,9 @@
  *   - all voices busy: two notes begun together both sound (a voice that has just begun is never taken)
  *   - a step asked to be skipped (it was played by hand just before it) plays no note, and only that one
  *   - the sound knobs: as the knobs are (16, LYS 32) nothing changes, bit for bit; a step's own LYS darkens only while
- *     that step sounds; LENGDE lengthens, ROM adds room, PIP changes the squeak */
+ *     that step sounds; LENGDE lengthens, ROM adds room, PIP changes the squeak
+ *   - the sub: a step of it sounds, low (its energy under 150 Hz), one at a time (a second note takes the first's
+ *     place, no click: no jump in the sound), at the step the melody's does */
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -135,5 +137,35 @@ int main(void)
           wet(out_a, out_c, 0, 11025u) > 0 && wet(out_b, out_c, 0, 11025u) > 8. * wet(out_a, out_c, 0, 11025u));
     bar(out_b, SND_PIP, 0u + 1u);
     check("PIP 0 on the first step: its squeak changes (not the same)", !same(out_a, out_b, 0, 11025u));
+
+    {                                           /* the sub: A2 under nothing, then B2, its notes */
+        int32_t buf[512];
+        uint32_t f, i2;
+        double lo = 0, all = 0, jump = 0;
+        int32_t prev = 0, lp = 0;
+        bar(out_a, SND_LEN, 0);                 /* (to set it all as at the start) */
+        memset((void *)hq.pat, 0, sizeof hq.pat);
+        hq.sub[0][0] = ST_MAKE(5, 0);           /* A4: it sings A2 */
+        hq.sub[0][1] = ST_MAKE(6, 0);           /* B4: B2 */
+        heng_cmd(HCMD(HC_PLAY, 0));
+        for (f = 0; f < 22050u; f += 256u) {
+            memset(buf, 0, sizeof buf);
+            heng_render(buf, 256u);
+            for (i2 = 0; i2 < 256u; i2++) {
+                int32_t x = buf[2u * i2], d = x - prev;
+                lp += (x - lp) / 32;            /* (a one-pole low-pass near 220 Hz) */
+                lo += (double)lp * lp;
+                all += (double)x * x;
+                if (f + i2 > 11025u - 600u && f + i2 < 11025u + 600u && (d < 0 ? -d : d) > jump) jump = d < 0 ? -d : d;
+                prev = x;
+            }
+        }
+        heng_cmd(HCMD(HC_STOP, 0));
+        run(256u);
+        memset((void *)hq.sub, 0, sizeof hq.sub);
+        check("the sub: its steps sound, low (most of it under the low-pass)", all > 0 && lo > .5 * all);
+        check("the sub: the second note takes the first's place without a click (no jump over 1/40 of full)",
+              jump < 8388608. / 40.);
+    }
     return fails ? 1 : 0;
 }

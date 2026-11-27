@@ -78,6 +78,9 @@ run "the sound knobs, REC while it plays: recorded into the steps heard and pass
 run "sharps: the black keys sing a semitone up, REC writes them (and a black note over MIDI), PLAY plays them; on the Tromster's page they are the drums" sh -c \
     "$OUT/hamstersynth $OUT/ham_sh tests/scripts/ham/sharps.txt >$OUT/ham_sh.log && python3 $P notes $OUT/ham_sh.log 61,63,54,73,70,61,66,63,48,64,67,64,52,67,64,61,66,63,69,72,55,71,67,62,48 &&
      grep -q '^  7001 ms  MIDI out 99 36' $OUT/ham_sh.log"
+run "the sub: ARP to its line, REC writes it (a rest, a sharp), PLAY plays it under the melody on channel 2, two octaves down" sh -c \
+    "$OUT/hamstersynth $OUT/ham_sub tests/scripts/ham/sub.txt >$OUT/ham_sub.log && python3 $P notes $OUT/ham_sub.log $A,48 &&
+     python3 $P chnotes $OUT/ham_sub.log 91 33,29,36,37,33,29,36,37"
 run "a song written on its page (AB), SONG on, PLAY: A's bar, then B's" sh -c \
     "$OUT/hamstersynth $OUT/ham_song tests/scripts/ham/song.txt >$OUT/ham_song.log && python3 $P notes $OUT/ham_song.log 72,$A,72"
 run "a tour of its pages: the screens (build/host/ham_tour-*.png)" sh -c \

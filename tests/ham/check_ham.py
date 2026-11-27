@@ -4,6 +4,7 @@
 
   check_ham.py notes LOG WANT [STEP_MS]   the note-ons on channel 1, in order, are WANT (comma separated); with
                                           STEP_MS: the first sixteen that far apart (+- 12 ms)
+  check_ham.py chnotes LOG STATUS WANT    the note-ons with that status (91: channel 2, the sub's), in order, are WANT
   check_ham.py cc LOG CC WANT             the control changes CC on channel 1, in order, are WANT (value@ms, comma
                                           separated; @ms: within 15 ms of it)
   check_ham.py peak WAV MAX               the sound's highest sample is under MAX (of full scale) and it is not silent
@@ -28,6 +29,13 @@ def main():
             t = [a for a, _ in ev][:16]
             ok = all(abs((b - a) - step) <= 12 for a, b in zip(t, t[1:]))
         print(f"notes {got}: {'ok' if ok else 'FAIL, want ' + str(want)}")
+        return 0 if ok else 1
+    if sys.argv[1] == "chnotes":
+        st = sys.argv[3]
+        got = [int(m[1]) for m in re.finditer(rf"^\s*\d+ ms  MIDI out {st} (\d+) \d+", open(sys.argv[2]).read(), re.M)]
+        want = [int(v) for v in sys.argv[4].split(",")]
+        ok = got[:len(want)] == want and len(got) == len(want)
+        print(f"notes {st} {got}: {'ok' if ok else 'FAIL, want ' + str(want)}")
         return 0 if ok else 1
     if sys.argv[1] == "cc":
         cc = int(sys.argv[3])

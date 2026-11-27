@@ -1,0 +1,20 @@
+# The sub, the chubby one's line. ARP: to it. REC from step 8, by hand: A3 (the sub sings A1), F3 (F1), SEL a rest,
+# C4 (C2), C#4 (C#2). ARP back to the melody, PLAY: the pattern A (its high C now the golden one's, the same note) and
+# under it the sub's four, at steps 8, 9, 11, 12, on MIDI channel 2. Last, ARP in the editor: the sub's step 12 gets
+# a glide, and the melody's is untouched
+300 btn 10
+500 btn 13
+600 keys 0x10
+660 keys 0
+800 keys 0x1
+860 keys 0
+1000 btn 3
+1200 keys 0x80
+1260 keys 0
+1400 keys 0x100
+1460 keys 0
+1600 btn 13
+1700 btn 10
+1800 btn 12
+5900 btn 12
+6000 end

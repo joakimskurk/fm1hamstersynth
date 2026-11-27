@@ -50,7 +50,12 @@ static const uint16_t PAT_COL[8] = {        /* the patterns A..H, everywhere */
 #define C_SEQ_D RGB(0x1E, 0x23, 0x28)
 #define C_SEQ_DOT RGB(0x58, 0x76, 0x7C)             /* a rest; on a beat brighter */
 #define C_SEQ_BEAT RGB(0x76, 0x96, 0x9B)
-static uint32_t scr_dark;                       /* THALL: the stage and the steps dark */
+#define C_SUB RGB(0x2A, 0x2F, 0x3A)                 /* the sub's line: under its steps, dark */
+#define C_SUB_TILE RGB(0xF6, 0xF0, 0xE8)            /* its tiles: the chubby one's white */
+#define C_SUB_FOOT RGB(0xB8, 0xAE, 0xA2)
+#define C_SUB_DOT RGB(0x40, 0x46, 0x52)
+#define C_SUB_BEAT RGB(0x5A, 0x61, 0x6E)
+static uint32_t scr_dark, scr_sub;              /* THALL: the stage and the steps dark; the sub's line shown */
 
 #define LOGO_H 24
 #define Y_HAM 24
@@ -326,7 +331,8 @@ static void draw_ham(uint32_t i, uint32_t state, uint32_t pose)
  * the step that plays: a white one */
 #define STEP_X(j) (7 + (int32_t)(j) * 28 + ((j) >= 4u ? 2 : 0))
 #define STEP_Y(r) (Y_STEPS + 4 + (int32_t)(r) * 30)
-static void draw_steps_bg(void) { fb_rect(0, Y_STEPS, 240, Y_BOT - Y_STEPS, scr_dark ? C_SEQ_D : C_SEQ); }
+static uint16_t seq_bg(void) { return scr_sub ? C_SUB : scr_dark ? C_SEQ_D : C_SEQ; }
+static void draw_steps_bg(void) { fb_rect(0, Y_STEPS, 240, Y_BOT - Y_STEPS, seq_bg()); }
 static uint16_t dark565(uint16_t c)              /* a colour, 5/8 as bright */
 {
     return (uint16_t)(((((c >> 11) & 31u) * 5u / 8u) << 11) | ((((c >> 5) & 63u) * 5u / 8u) << 5) | ((c & 31u) * 5u / 8u));
@@ -339,11 +345,11 @@ static uint32_t light565(uint16_t c)             /* light enough for ink on it *
 static void draw_step(uint32_t i, uint32_t s, uint32_t cur, uint32_t playing, uint32_t snd)
 {
     int32_t x = STEP_X(i & 7u), y = STEP_Y(i >> 3), beat = (i & 3u) == 0u;
-    fb_rect(x, y, 24, 26, scr_dark ? C_SEQ_D : C_SEQ);
-    if (s & ST_ON) {
-        uint16_t t = HAM_TINT[ST_KEY(s)], ink = light565(t) ? C_INK : C_WHITE2;
+    fb_rect(x, y, 24, 26, seq_bg());
+    if (s & ST_ON) {                            /* (the sub's: the chubby one's white, all of them) */
+        uint16_t t = scr_sub ? C_SUB_TILE : HAM_TINT[ST_KEY(s)], ink = light565(t) ? C_INK : C_WHITE2;
         int32_t o = ST_OCT(s), r = (int32_t)ST_RATCHET(s), k;
-        fb_pill(x, y, 24, 26, snd ? C_FOOT_SND : dark565(t));   /* the foot, then the body over it */
+        fb_pill(x, y, 24, 26, snd ? C_FOOT_SND : scr_sub ? C_SUB_FOOT : dark565(t));   /* the foot, then the body */
         fb_rect(x + 2, y, 20, 19, t);
         fb_rect(x, y + 2, 24, 17, t);
         fb_text(x + 3, y + 3, NOTE_NAME[ST_KEY(s)], ink, 2);
@@ -361,7 +367,8 @@ static void draw_step(uint32_t i, uint32_t s, uint32_t cur, uint32_t playing, ui
         for (k = 0; r > 1 && k < r; k++)        /* a ratchet: its hits */
             fb_rect(x + 15 + k * 2, y + 20, 1, 3, C_WHITE2);
     } else {
-        fb_rect(x + 10, y + 11, 4, 4, playing ? C_WHITE2 : snd ? C_FOOT_SND : beat ? C_SEQ_BEAT : C_SEQ_DOT);
+        fb_rect(x + 10, y + 11, 4, 4, playing ? C_WHITE2 : snd ? C_FOOT_SND : scr_sub ? (beat ? C_SUB_BEAT : C_SUB_DOT) :
+                beat ? C_SEQ_BEAT : C_SEQ_DOT);
     }
     if (playing)
         fb_pill_line(x, y, 24, 26, C_WHITE2);

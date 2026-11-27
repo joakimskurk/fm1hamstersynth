@@ -62,15 +62,17 @@ enum { SND_LYS, SND_LEN, SND_PIP, SND_ROM, NSND };
 
 enum { DR_KICK, DR_SNARE, DR_HAT, DR_CLAP };
 /* main -> interrupt, 32 bits: the command in the top 4 bits */
-enum { HC_NOTE = 1, HC_PREVIEW, HC_DRUM, HC_PLAY, HC_STOP, HC_CHOKE, HC_EXT_START, HC_EXT_CLOCK };
+enum { HC_NOTE = 1, HC_PREVIEW, HC_DRUM, HC_PLAY, HC_STOP, HC_CHOKE, HC_EXT_START, HC_EXT_CLOCK, HC_SUB };
 #define HCMD(c, a) ((uint32_t)(c) << 28 | (a))
 /* HC_NOTE: MIDI note (7 bits) | table key << 7 (3 bits) | velocity << 10 (7 bits; 0: the page's 1.0)
-   HC_PREVIEW: step | pattern << 4      HC_DRUM: drum | voice << 2 | 16: a voice tried (0.95; else a step set, 0.92)
+   HC_SUB: a note of the sub by hand: MIDI note (7 bits, as the key's: it sounds two octaves under) | velocity << 7
+   HC_PREVIEW: step | pattern << 4 | 128: the sub's      HC_DRUM: drum | voice << 2 | 16: a voice tried (0.95; else a step set, 0.92)
    HC_PLAY: 0 a pattern, 1 the song     HC_EXT_START: 0 from the start, 1 on from where it was */
 /* interrupt -> main */
-enum { HE_STEP = 1, HE_NOTE, HE_DRUM, HE_BAR };
+enum { HE_STEP = 1, HE_NOTE, HE_DRUM, HE_BAR, HE_SUB };
 /* HE_STEP: step | pattern << 4 | song position << 8     HE_NOTE: key | MIDI note << 4 | velocity (0..127) << 12
-   HE_DRUM: a bit a drum     HE_BAR: the pattern that now plays | song position << 8 */
+   HE_DRUM: a bit a drum     HE_BAR: the pattern that now plays | song position << 8
+   HE_SUB: the sub sings: MIDI note (as the key's) | velocity << 8 */
 
 static const uint8_t HAM_MIDI[8] = {60, 62, 64, 65, 67, 69, 71, 72};
 
@@ -83,6 +85,8 @@ static struct {
     volatile uint32_t song_len, bpm, thall, drums_on, swing, want_pat, lvl_ham, lvl_drum, off, hvoice;
     volatile uint32_t skip;                     /* the step fired as this (heng_fired) plays no note: it was played by
                                                    hand just before it, and recorded there */
+    volatile uint16_t sub[NPAT][16];            /* the sub's line (the chubby one): steps as the melody's, two octaves down */
+    volatile uint32_t subskip;                  /* as skip, the sub's */
     volatile uint8_t snd[NSND];                 /* the sound knobs */
     volatile uint8_t plock[NPAT][16][NSND];     /* a step's own sound: 0 none (the knob's), else its value + 1 */
 } hq = {.song_len = 1, .bpm = 120, .lvl_ham = 256, .lvl_drum = 256, .snd = {32, 16, 16, 16}};
@@ -679,11 +683,67 @@ static void drum_on(uint32_t id, uint32_t vc, int32_t vel)
 }
 
 /* ---- the sequencer (all of it in the interrupt) */
+/* ---- the sub: the chubby one's line. One note at a time, round and deep: a sine and a little of its second harmonic,
+   a hum (its third and fifth) as it begins and a blip of pitch from above (hm!), a glide from the note before. Two
+   octaves under its step's note; not through the room, nor LYS, nor THALL's octave: the floor under the hamsters */
+#define LG_SUB (-240000)                        /* its level: a sine at 0.08, 2 dB over a hamster (by RMS: a bass, felt less) */
+#define LG_SUB_BLIP (10923)                     /* two semitones */
+typedef struct { uint8_t on; uint32_t ph; int32_t lgp, a; env_t amp, pv, hum; } sub_t;
+static sub_t subv;
+static int32_t sub_pitch(uint32_t midi)          /* a key's note, two octaves down (C1 at the lowest) */
+{
+    return HAM_LGP[midi < 48u ? 24u : midi > 127u ? 103u : midi - 24u];
+}
+static void sub_note_on(const note_t *n)
+{
+    sub_t *v = &subv;
+    uint32_t ss = umax(n->ss, MS(60)), dur = len_of(umax(ss * 92u / 100u, MS(80)), n), gt;
+    int32_t vel = n->vel < LG_VMIN ? LG_VMIN : n->vel > LG_VMAX ? LG_VMAX : n->vel;
+    env_start(&v->amp, v->on ? v->amp.lg : LG_FLOOR);   /* (one at a time: from where it is, no click) */
+    env_seg(&v->amp, SEG_RAMP, LG_SUB + vel, blk(MS(5)));
+    env_seg(&v->amp, SEG_RAMP, LG_SUB + vel - 32768, blk(dur > MS(45) ? dur - MS(45) : 1u));
+    env_seg(&v->amp, SEG_RAMP, LG_FLOOR, blk(MS(40)));
+    gt = umin(umax(ss * 42u / 100u, MS(30)), MS(140));
+    if (n->from && v->on) {                     /* a glide: from the note before, no blip */
+        env_start(&v->pv, n->from - n->lgp);
+        env_seg(&v->pv, SEG_RAMP, 0, blk(gt));
+    } else {
+        env_start(&v->pv, LG_SUB_BLIP);
+        env_seg(&v->pv, SEG_RAMP, 0, blk(MS(25)));
+        v->ph = v->on ? v->ph : 0u;
+    }
+    env_start(&v->hum, 12000);                  /* (how much hum: Q15, gone in 70 ms) */
+    env_seg(&v->hum, SEG_RAMP, 0, blk(MS(70)));
+    v->lgp = n->lgp;
+    v->on = 1;
+}
+static void sub_block(int32_t *mix)
+{
+    sub_t *v = &subv;
+    int32_t alg = env_step(&v->amp), hum = env_step(&v->hum), a1, da;
+    uint32_t inc = ex2_inc(v->lgp + env_step(&v->pv)), i;
+    a1 = (int32_t)(ex2_q24(alg) >> 9);          /* Q15 */
+    da = (a1 - v->a) / (int32_t)HCB;
+    for (i = 0; i < HCB; i++) {
+        int32_t s;
+        v->ph += inc;
+        s = HAM_SIN[v->ph >> 20] + ((HAM_SIN[(v->ph * 2u) >> 20] * 6554) >> 15);
+        if (hum)
+            s += ((HAM_SIN[(v->ph * 3u) >> 20] + (HAM_SIN[(v->ph * 5u) >> 20] >> 1)) * hum) >> 15;
+        v->a += da;
+        mix[i] += (s * v->a) >> 7;              /* Q15 * Q15 -> Q23 */
+    }
+    v->a = a1;
+    if (v->amp.done)
+        v->on = 0;
+}
+
 typedef struct { uint32_t at, kind; note_t n; uint32_t vc; } pend_t;   /* a ratchet's next hit: frames from now */
 static struct {
     uint32_t playing, song, ext, pat, step, pos, acc, thr, first, fired;
     uint32_t cur_p, cur_s;                      /* the step that sounds now: its sound (LYS, ROM) is the hamsters' */
     int32_t last_lgp;                           /* the note before, for a glide; 0: none */
+    int32_t sub_lgp;                            /* the sub's */
     pend_t pend[8];
     uint32_t npend, ext_n, ext_last, ext_len, now;
 } sq;
@@ -742,6 +802,33 @@ static void step_note(uint32_t s, uint32_t p, uint32_t step, int32_t from, uint3
     }
 }
 
+static void sub_step(uint32_t s, uint32_t p, uint32_t step, int32_t from)   /* a sub step: now, and its ratchets */
+{
+    uint32_t count = ST_RATCHET(s), k, sub = sq_step_frames() / count, midi = ST_MIDI(s);
+    note_t n;
+    n.key = 7;
+    n.toct = 0;
+    n.lgp = sub_pitch(midi);
+    n.vel = HAM_VEL_LG[step & 15u] + (ST_ACCENT(s) ? LG_ACCENT : 0);
+    n.ss = umax(MS(55), sub);
+    n.from = ST_GLIDE(s) ? from : 0;
+    n.arp = 0;
+    n.maxdur = 0;
+    n.line = 0;
+    n.len = SND_LEN_Q8[snd_of(p, step, SND_LEN)];
+    n.pip = 256;
+    sub_note_on(&n);
+    he_put(HE_SUB, midi | (uint32_t)((n.vel < LG_VMIN ? 0 : n.vel > LG_VMAX ? LG_VMAX - LG_VMIN : n.vel - LG_VMIN) * 127 / (LG_VMAX - LG_VMIN)) << 8);
+    n.from = 0;
+    for (k = 1; k < count && sq.npend < 8u; k++) {
+        sq.pend[sq.npend].at = sub * k;
+        sq.pend[sq.npend].kind = 2;
+        sq.pend[sq.npend].n = n;
+        sq.pend[sq.npend].vc = midi;
+        sq.npend++;
+    }
+}
+
 static void sq_fire(void)                       /* the step sq.step of the pattern sq.pat, now */
 {
     uint32_t step = sq.step, p = sq.pat & PMASK, s = hq.pat[p][step], d, mask = 0, fired = ++sq.fired;
@@ -778,6 +865,14 @@ static void sq_fire(void)                       /* the step sq.step of the patte
             step_note(s, p, step, sq.last_lgp, 0);
         sq.last_lgp = note_lgp(ST_MIDI(s));
     }
+    {                                           /* the sub's step */
+        uint32_t u = hq.sub[p][step];
+        if (u & ST_ON) {
+            if (hq.subskip != fired)
+                sub_step(u, p, step, sq.sub_lgp);
+            sq.sub_lgp = sub_pitch(ST_MIDI(u));
+        }
+    }
     if (++sq.step >= 16u) {                     /* the bar is over: the song goes on, or the pattern asked for */
         sq.step = 0;
         if (sq.song) {
@@ -795,7 +890,7 @@ static void sq_stop(void)
     sq.playing = sq.song = sq.ext = 0;
     sq.npend = 0;
     sq.step = sq.pos = 0;
-    sq.last_lgp = 0;
+    sq.last_lgp = sq.sub_lgp = 0;
     if (hq.thall)
         thall_choke();
 }
@@ -807,7 +902,7 @@ static void sq_start(uint32_t song, uint32_t ext)
     sq.ext = ext;
     sq.step = sq.pos = 0;
     sq.npend = 0;
-    sq.last_lgp = 0;
+    sq.last_lgp = sq.sub_lgp = 0;
     sq.pat = song ? hq.song[0] & PMASK : hq.want_pat & PMASK;
     sq.acc = 0;
     sq.thr = 0;                                 /* the first step at once (ext: on the first clock) */
@@ -837,11 +932,38 @@ static void sq_command(uint32_t c)
         note_on(&n, midi);
         break;
     }
+    case HC_SUB: {                              /* the sub by hand */
+        note_t n;
+        uint32_t midi = a & 127u, vq = a >> 7 & 127u;
+        n.key = 7;
+        n.toct = 0;
+        n.lgp = sub_pitch(midi);
+        n.vel = vq ? HAM_MIDI_VEL_LG[vq] : 0;
+        n.ss = sq_step_frames();
+        n.from = 0;
+        n.arp = 0;
+        n.maxdur = 0;
+        n.line = 1;
+        n.len = SND_LEN_Q8[umin(hq.snd[SND_LEN], SND_MAX)];
+        n.pip = 256;
+        sub_note_on(&n);
+        he_put(HE_SUB, midi | (vq ? vq : 100u) << 8);
+        break;
+    }
     case HC_PREVIEW: {                          /* a step alone, as the page's editor plays it */
-        uint32_t step = a & 15u, p = a >> 4 & PMASK, s = hq.pat[p][step], k;
+        uint32_t step = a & 15u, p = a >> 4 & PMASK, s = a & 128u ? hq.sub[p][step] : hq.pat[p][step], k;
         int32_t from = 0;
         if (!(s & ST_ON))
             break;
+        if (a & 128u) {                         /* the sub's: a glide from the sub's note before it */
+            for (k = 1; k <= 16u && ST_GLIDE(s); k++) {
+                uint32_t o = hq.sub[p][(step + 16u - k) & 15u];
+                if (o & ST_ON) { from = sub_pitch(ST_MIDI(o)); break; }
+            }
+            sq.npend = 0;
+            sub_step(s, p, step, from);
+            break;
+        }
         for (k = 1; k <= 16u && ST_GLIDE(s); k++) {   /* a glide: from the note before it in the pattern */
             uint32_t o = hq.pat[p][(step + 16u - k) & 15u];
             if (o & ST_ON) {
@@ -907,10 +1029,14 @@ static void sq_tick(void)
             k++;
             continue;
         }
-        if (p->kind)
+        if (p->kind == 2u) {
+            sub_note_on(&p->n);
+            he_put(HE_SUB, p->vc | 64u << 8);
+        } else if (p->kind) {
             drum_on(DR_KICK, p->vc, p->n.vel);
-        else
+        } else {
             note_on(&p->n, p->vc);
+        }
         *p = sq.pend[--sq.npend];
     }
     if (sq.playing && !sq.ext) {
@@ -939,6 +1065,7 @@ static void heng_init(void)
     for (i = 0; i < NHV; i++) hv[i].on = 0;
     for (i = 0; i < NTV; i++) tv[i].on = 0;
     for (i = 0; i < NDV; i++) dv[i].on = 0;
+    subv.on = 0;
     for (i = 0; i < 2u * ROOM_N; i++) room[i] = 0;
 }
 
@@ -1141,7 +1268,7 @@ static void heng_render(int32_t *out, uint32_t n)
     uint32_t f, i, k, busy = 0;
     int32_t pk = 0;
     for (f = 0; f < n; f += HCB) {
-        int32_t hl[HCB], hr[HCB], tm[HCB], dm[HCB], white[HCB], lys_a;
+        int32_t hl[HCB], hr[HCB], tm[HCB], dm[HCB], white[HCB], sm[HCB], lys_a;
         uint32_t any_h = 0, any_d = 0, rf;
         sq_tick();
         if (sq.playing) {                       /* LYS and ROM: the step that sounds, else the knobs */
@@ -1152,7 +1279,11 @@ static void heng_render(int32_t *out, uint32_t n)
             rf = snd_rom_q8(umin(hq.snd[SND_ROM], SND_MAX));
         }
         for (i = 0; i < HCB; i++)
-            hl[i] = hr[i] = tm[i] = dm[i] = 0;
+            hl[i] = hr[i] = tm[i] = dm[i] = sm[i] = 0;
+        if (subv.on) {
+            sub_block(sm);
+            busy = 1;
+        }
         nz_gain = 0;
         for (k = 0; k < NHV; k++)
             if (hv[k].on) {
@@ -1221,6 +1352,8 @@ static void heng_render(int32_t *out, uint32_t n)
                 lys_z[0] = lys_z[1] = l;
                 lys_z[2] = lys_z[3] = r;
             }
+            l += sm[i];                         /* the sub: under it all, as it is */
+            r += sm[i];
             d = (int32_t)(((int64_t)dm[i] * (int32_t)hq.lvl_drum) >> 8);
             l = ((int32_t)(((int64_t)l * (int32_t)hq.lvl_ham) >> 8) + d) >> HAM_MAKEUP_SH;
             r = ((int32_t)(((int64_t)r * (int32_t)hq.lvl_ham) >> 8) + d) >> HAM_MAKEUP_SH;

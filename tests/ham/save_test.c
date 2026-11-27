@@ -18,11 +18,11 @@ int main(void)
          !hq.plock[2][5][0];
     printf("a save of 4 (%u B) loads, the sound as ever: %s\n", n, ok ? "ok" : "FAIL");
     if (!ok) return 1;
-    hq.snd[SND_ROM] = 7; hq.plock[1][9][SND_PIP] = 12;
+    hq.snd[SND_ROM] = 7; hq.plock[1][9][SND_PIP] = 12; hq.sub[3][4] = ST_MAKE(5, -1);
     store_save();
-    hq.snd[SND_ROM] = 16; hq.plock[1][9][SND_PIP] = 0;
+    hq.snd[SND_ROM] = 16; hq.plock[1][9][SND_PIP] = 0; hq.sub[3][4] = 0;
     store_load();
-    ok = hq.snd[SND_ROM] == 7u && hq.plock[1][9][SND_PIP] == 12u && bpm == 133u;
-    printf("a save of 5 (%u B) keeps the knobs and the steps' own: %s\n", (unsigned)sizeof(save_t), ok ? "ok" : "FAIL");
+    ok = hq.snd[SND_ROM] == 7u && hq.plock[1][9][SND_PIP] == 12u && bpm == 133u && hq.sub[3][4] == ST_MAKE(5, -1);
+    printf("a save of 6 (%u B) keeps the knobs, the steps' own, the sub: %s\n", (unsigned)sizeof(save_t), ok ? "ok" : "FAIL");
     return ok ? 0 : 1;
 }

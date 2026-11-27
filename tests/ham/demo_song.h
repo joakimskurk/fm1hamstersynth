@@ -9,7 +9,8 @@
  *   F  the hook: Am, F, up high
  *   G  the hook: C, G, home to G
  *   H  the end: Am, long, the light going                               (LYS 26 .. 8, LENGDE 32, ROM 32)
- * The song: A B C D C D E F G F G, then C D F G in THALL, then H. */
+ * The song: A B C D C D E F G F G, then C D F G in THALL, then H. Under it the sub (the chubby one, two octaves down):
+ * long roots in the intro, a bouncing line in the groove and the hook, eighths driving the build, long at the end. */
 #define DS(k, o, fx) ((uint16_t)(ST_MAKE((k), (o)) | (fx)))
 #define GL (1u << 6)                            /* glide */
 #define AC (1u << 7)                            /* accent */
@@ -62,11 +63,29 @@ static void ham_demo(void)
     /* the voices (4: the hamster kit: a cheek's pop, a seed's crunch, a sniff, a squeak) */
     static const uint8_t DV[8][4] = {{0, 0, 0, 0}, {0, 0, 0, 3}, {0, 0, 0, 0}, {0, 1, 3, 0},
                                      {1, 0, 0, 3}, {0, 1, 3, 3}, {1, 0, 3, 3}, {3, 0, 0, 0}};
+    /* the sub: under A nothing; B C, G long; C, D, F, G bouncing; E eighths (F, then E); H A, F long */
+#define SB(k, o, fx) DS(k, o, fx)
+    static const uint16_t SUB[8][16] = {
+        {0},
+        {SB(C_, 0, 0), 0, 0, 0, 0, 0, 0, 0, SB(G_, -1, 0), 0, 0, 0, 0, 0, 0, 0},
+        {SB(A_, -1, AC), 0, 0, SB(A_, -1, 0), 0, SB(A_, 0, 0), 0, SB(A_, -1, 0),
+         SB(F_, -1, AC), 0, 0, SB(F_, -1, 0), 0, SB(F_, 0, 0), 0, SB(G_, -1, GL)},
+        {SB(C_, 0, AC), 0, 0, SB(C_, 0, 0), 0, SB(C_, 1, 0), 0, SB(C_, 0, 0),
+         SB(G_, -1, AC), 0, 0, SB(G_, -1, 0), 0, SB(G_, 0, 0), 0, SB(G_, -1, 0)},
+        {SB(F_, -1, AC), SB(F_, -1, 0), SB(F_, -1, 0), SB(F_, -1, 0), SB(F_, -1, AC), SB(F_, -1, 0), SB(F_, -1, 0), SB(F_, -1, 0),
+         SB(E_, -1, AC), SB(E_, -1, 0), SB(E_, -1, 0), SB(E_, -1, 0), SB(E_, -1, AC), SB(E_, -1, R2), SB(E_, 0, R2), SB(E_, 0, R4 | AC)},
+        {SB(A_, -1, AC), 0, SB(A_, -1, 0), 0, SB(A_, 0, 0), 0, SB(A_, -1, 0), 0,
+         SB(F_, -1, AC), 0, SB(F_, -1, 0), 0, SB(F_, 0, 0), 0, SB(G_, -1, GL), 0},
+        {SB(C_, 0, AC), 0, SB(C_, 0, 0), 0, SB(C_, 1, 0), 0, SB(C_, 0, 0), 0,
+         SB(G_, -1, AC), 0, SB(G_, -1, 0), 0, SB(G_, 0, 0), 0, SB(B_, -1, GL), 0},
+        {SB(A_, -1, 0), 0, 0, 0, 0, 0, 0, 0, SB(F_, -1, 0), 0, 0, 0, 0, 0, 0, 0},
+    };
     static const char SONG[] = "ABCDCDEFGFGCDFGH";
     uint32_t p, i, k;
     for (p = 0; p < 8u; p++) {
         for (i = 0; i < 16u; i++) {
             hq.pat[p][i] = P[p][i];
+            hq.sub[p][i] = SUB[p][i];
             for (k = 0; k < NSND; k++)
                 hq.plock[p][i][k] = 0;
         }

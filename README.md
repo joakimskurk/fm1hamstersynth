@@ -75,6 +75,7 @@ Verktøykjeden (JieLi) og SDK-en: [docs/DINGHY_README.md](docs/DINGHY_README.md)
 | **SEL** (hold) | Slett sekvensen (ENV henter den tilbake). |
 | **SAVE** | Lagre nå. (Den lagrer også selv, to sekunder etter siste endring, når ingenting låter.) |
 | **SAVE** (hold) | Oppsett: KNOTT 1–4 er swing, hamsternivå, Tromster-nivå og MIDI-kanal. |
+| **ARP** | Bytter linje: melodien (hamsterne) eller suben (den chubby med solbriller, bassen). Tangentene, REC og EDIT følger linjen du er på; begge spiller alltid. |
 | **KNOTT 1–4** | Lyden: LYS, LENGDE, PIP, ROM (se under). Med REC mens den spiller tas de opp i sekvensen. |
 
 **Lyden (KNOTT 1–4):** LYS gjør hamsterne mørkere, LENGDE gjør tonene kortere eller lengre, PIP gir mindre eller
@@ -84,7 +85,13 @@ skrur. De stegene får et grønt merke og spiller med sin egen lyd, mens de andr
 lyden for alle steg uten egen lyd. **Hold ENV** sletter lyd-opptaket i sekvensen (ENV henter det tilbake). Knottene går
 også ut og inn som MIDI CC: 74 (LYS), 72 (LENGDE), 77 (PIP) og 91 (ROM).
 
-**I EDIT:** KNOTT 1 glide, KNOTT 2 arp (+7, +12), KNOTT 3 accent, KNOTT 4 ratchet (×1–×4). **ARP** blar også arp,
+**Suben:** den åttende hamsteren, den chubby med solbriller, har sin egen linje: 16 steg i hver sekvens, under
+melodien, to oktaver ned, rund og dyp (mest sinus, litt brumming i anslaget, glide når glide er på). **ARP** bytter
+mellom melodien og suben; i sub-visningen er stegene hvite på mørkt og det står SUB nederst. Alt annet virker som i
+melodien: tangentene (også de svarte), REC og EDIT (uten arp), ENV, SEL. Melodiens høye C synger nå den gylne, en
+oktav opp. Suben går ut på MIDI-kanalen etter melodiens.
+
+**I EDIT:** KNOTT 1 glide, KNOTT 2 arp (+7, +12), KNOTT 3 accent, KNOTT 4 ratchet (×1–×4).
 **SEL** sletter steget, **SAVE** kopierer det til neste, **LFO** lager en tilfeldig sekvens.
 
 **På Tromster-siden:** F3 G3 A3 B3 velger kick, snare, hat, clap; C4–C5 setter de åtte stegene (lysene viser dem);
