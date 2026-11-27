@@ -3,7 +3,7 @@
 <p align="center"><img src="docs/screens/ham-logo.png" width="640" alt="HAMSTERSYNTH"></p>
 
 Nettsiden *Hamster Piano* (v4.17) som firmware for M-VAVE FM-1: de åtte hamsterne, 16-stegs sequenceren med åtte
-sekvenser (A–H; siden har fire) og song, Tromster og THALLHAMSTERGRINDCORE. Bygget på Dinghy 0.5 (Felucca/SLOOP).
+sekvenser (A–H; siden har fire) og song, Tromster og THALLHAMSTERGRINDCORE. Bygget på Dinghy 0.5 (Felucca/SLOOP), med skjermfiksen fra Dinghy 0.6.1 for nyere FM-1-er.
 
 **Nettsiden:** <https://joakimskurk.github.io/fm1hamstersynth/>. Der kan du prøve den i nettleseren, høre demoen og
 installere den på FM-1.
@@ -36,6 +36,9 @@ Trykk **HOME**, så sier en av hamsterne noe. Mye av det er hentet fra
 - **På datamaskinen:** lyden mot nettsiden, og knappene, tangentene og MIDI gjennom skript (`tests/run_hamster.sh`).
 - **Ikke prøvd på en ekte FM-1.** Emulatoren viser ikke lysene på tangentene og knappene, og den kjennes ikke som
   ekte dreieknapper. Plattformen under (Dinghy) er prøvd på FM-1: tangenter, skjerm, MIDI, installasjon.
+- **Nyere FM-1-er** (med FM-1/M-VAVE-logoen under skjermen) fikk blek skjerm uten rødt, eller svart skjerm. Skjermen
+  settes nå opp med M-VAVEs egne verdier, slik Dinghy 0.6.1 gjør (funnet av Jake Handy for h1). De første FM-1-ene ser
+  ut som før.
 
 ## Bygge og installere
 

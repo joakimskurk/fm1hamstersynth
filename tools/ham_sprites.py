@@ -387,11 +387,15 @@ def kit_front(thump=False):
                  ".PPPPPP.",
                  "..PPPP.."], 7, 6, {"P": SPARK if thump else RED[1]})
     layer(g, drum, 17, 23)
-    for y0 in (21, 18):                         # the hi-hat: two gold cymbals, the lower first
-        cym = outlined(lambda x, y: (GOLD[0] if y < 2 else GOLD[1] if y < 3 else GOLD[2])
-                       if (x - 7.5) ** 2 / 56 + (y - 2) ** 2 / 4.5 <= 1 else None, 16, 5)
-        layer(g, cym, 40, y0)
-    layer(g, [[INK], [INK]], 48, 17)            # its nut
+    stamp(g, ["......KKKK......",          # the hi-hat, closed: the top cymbal's bell up, the bottom one's down,
+              "....KKLLLLKK....",          # their rims together
+              ".KKKLLLLLLMMKKK.",
+              "KLLLLLLLMMMMMMMK",
+              "KMDDDDDDDDDDDDDK",
+              ".KKKDDDDDDDDKKK.",
+              "....KKDDDDKK....",
+              "......KKKK......"], 40, 18, {"K": INK, "L": GOLD[0], "M": GOLD[1], "D": GOLD[2]})
+    layer(g, [[INK], [INK]], 48, 16)            # its rod over it
     return g
 
 
