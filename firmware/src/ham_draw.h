@@ -294,10 +294,11 @@ static void draw_ham(uint32_t i, uint32_t state, uint32_t squash)
 /* ---- the steps: two rows of eight, each two beats of four (a gap between them). A step: 28 x 15. Its note in big
  * letters; its octave an arrow (and how many); at its left a stripe in its hamster's colour, cut in two, three or four
  * for its ratchet; under the arrow its effects: glide (blue), arpeggio (yellow, +12 orange), accent (pink). The step
- * the cursor is on: a yellow frame; the one that plays: lit, a pink frame */
+ * the cursor is on: a yellow frame; the one that plays: lit, a pink frame; one with its own sound (the knobs, recorded):
+ * a green mark at its right */
 #define STEP_X(j) (2 + (int32_t)(j) * 29 + ((j) >= 4u ? 4 : 0))
 static void draw_steps_bg(void) { fb_rect(0, Y_STEPS, 240, 32, C_INK); }
-static void draw_step(uint32_t i, uint32_t s, uint32_t cur, uint32_t playing)
+static void draw_step(uint32_t i, uint32_t s, uint32_t cur, uint32_t playing, uint32_t snd)
 {
     int32_t x = STEP_X(i & 7u), y = Y_STEPS + (int32_t)(i >> 3) * 16, beat = (i & 3u) == 0u;
     uint16_t bg = playing ? C_BLUE : (s & ST_ON) ? (beat ? C_STEP1B : C_STEP1) : (beat ? C_STEP0B : C_STEP0);
@@ -322,6 +323,8 @@ static void draw_step(uint32_t i, uint32_t s, uint32_t cur, uint32_t playing)
     } else {
         fb_rect(x + 13, y + 6, 2, 2, playing ? C_MUTED : C_BLUE3);   /* an empty step: a dot */
     }
+    if (snd)                                    /* its own sound (the knobs, recorded): a green mark */
+        fb_rect(x + 24, y + 7, 3, 2, C_GREEN);
     if (playing)
         fb_frame(x, y, 28, 15, 1, C_PINK);
     else if (cur)

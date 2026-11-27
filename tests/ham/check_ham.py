@@ -4,6 +4,8 @@
 
   check_ham.py notes LOG WANT [STEP_MS]   the note-ons on channel 1, in order, are WANT (comma separated); with
                                           STEP_MS: the first sixteen that far apart (+- 12 ms)
+  check_ham.py cc LOG CC WANT             the control changes CC on channel 1, in order, are WANT (value@ms, comma
+                                          separated; @ms: within 15 ms of it)
   check_ham.py peak WAV MAX               the sound's highest sample is under MAX (of full scale) and it is not silent
 """
 import re
@@ -26,6 +28,13 @@ def main():
             t = [a for a, _ in ev][:16]
             ok = all(abs((b - a) - step) <= 12 for a, b in zip(t, t[1:]))
         print(f"notes {got}: {'ok' if ok else 'FAIL, want ' + str(want)}")
+        return 0 if ok else 1
+    if sys.argv[1] == "cc":
+        cc = int(sys.argv[3])
+        ev = [(int(m[1]), int(m[2])) for m in re.finditer(rf"^\s*(\d+) ms  MIDI out B0 {cc} (\d+)", open(sys.argv[2]).read(), re.M)]
+        want = [tuple(int(x) for x in w.split("@")) for w in sys.argv[4].split(",")]
+        ok = len(ev) == len(want) and all(v == wv and abs(t - wt) <= 15 for (t, v), (wv, wt) in zip(ev, want))
+        print(f"CC {cc} {[f'{v}@{t}' for t, v in ev]}: {'ok' if ok else 'FAIL, want ' + sys.argv[4]}")
         return 0 if ok else 1
     if sys.argv[1] == "peak":
         _, x = read_wav(sys.argv[2])

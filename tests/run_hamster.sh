@@ -54,8 +54,12 @@ run "the hamster kit (the drums' fourth voices) sounds and does not clip" sh -c 
     "printf 'bpm 120\ndrums 1\ndrum 0 0 17\ndrum 0 1 68\ndrum 0 2 85\ndrum 0 3 170\ndvoice 0 0 3\ndvoice 0 1 3\ndvoice 0 2 3\ndvoice 0 3 3\n' > build/audio/kit.txt &&
      build/ham_render build/audio/kit.txt build/audio/kit.wav && python3 $P peak build/audio/kit.wav 0.9"
 
+# the settings in flash: an older save still loads
+run "a save from before the sound knobs loads (its patterns kept), a new one keeps them" sh -c \
+    "cc $CF -Wno-unused-variable -o $OUT/save_test tests/ham/save_test.c && $OUT/save_test"
+
 # playing over what plays
-run "the engine: THALL's two lines, no voice taken as it begins, a step skipped" sh -c \
+run "the engine: THALL's two lines, no voice taken as it begins, a step skipped; the sound knobs, per step" sh -c \
     "cc -O2 -Wall -Wextra -Werror -Wno-unused-function -Ifirmware/src -Ifirmware/gen -o build/engine_test tests/ham/engine_test.c && build/engine_test"
 
 # the app, by its buttons
@@ -68,6 +72,9 @@ run "REC while it plays: a note into the step it was heard in (the nearest), not
     "$OUT/hamstersynth $OUT/ham_od tests/scripts/ham/overdub.txt >$OUT/ham_od.log && python3 $P notes $OUT/ham_od.log 48,64,67,64,52,67,64,62,53,67,69,72,55,71,71,67,79,48,64,67,64,52,67,64,62,53,67,69,72,71,67,79,48"
 run "EDIT while it plays: the keys record where they are heard, as REC (the step the editor holds stays)" sh -c \
     "$OUT/hamstersynth $OUT/ham_ep tests/scripts/ham/editplay.txt >$OUT/ham_ep.log && python3 $P notes $OUT/ham_ep.log 48,64,67,64,52,67,64,62,53,67,69,71,55,71,79,62,48,64,67,64,52,67,64,62,53,67,69,71,55,71,79,62"
+run "the sound knobs, REC while it plays: recorded into the steps heard and passed, played back there (MIDI CC 74), the rest as the knob" sh -c \
+    "$OUT/hamstersynth $OUT/ham_kn tests/scripts/ham/knobrec.txt >$OUT/ham_kn.log && python3 $P notes $OUT/ham_kn.log $A,$A &&
+     python3 $P cc $OUT/ham_kn.log 74 95@4300,64@4500,127@5051,95@8302,64@8551,127@9000 && python3 $P cc $OUT/ham_kn.log 72 79@9500"
 run "a song written on its page (AB), SONG on, PLAY: A's bar, then B's" sh -c \
     "$OUT/hamstersynth $OUT/ham_song tests/scripts/ham/song.txt >$OUT/ham_song.log && python3 $P notes $OUT/ham_song.log 72,$A,72"
 run "a tour of its pages: the screens (build/host/ham_tour-*.png)" sh -c \

@@ -1,0 +1,12 @@
+# The sound knobs. PLAY (pattern A at 120 BPM, a step every 250 ms from 0.3 s), REC, then K1 (LYS) turned down twice:
+# just before the second round's first step (4.30 s: into it, 24) and in it (4.50 s: nearer the second, 16). Recorded
+# there, and in the third, which passes while the knob is still being turned (within two steps); the fourth has none:
+# the knob's (32). MIDI CC 74 says so, and the next round the same, at the same steps. Then stopped: K2 (LENGDE) up,
+# the knob's own (20: CC 72 79), nothing recorded
+300 btn 12
+2000 btn 13
+4300 enc 2 -8
+4500 enc 2 -8
+9000 btn 12
+9500 enc 3 4
+10000 end

@@ -4,7 +4,7 @@
 tour) and its own hamsters (tools/ham_sprites.py):
 
   docs/screens/ham-logo.png   the logo bar off the screen, 4 x (960 x 96)
-  docs/screens/ham-icon.png   the orange hamster, its mouth open, its seed (64 x 64): the page's icon
+  docs/screens/ham-icon.png   the orange hamster, its mouth open (64 x 64): the page's icon
   web/og.png                  the link preview (1200 x 630): the logo and three screens on the page's paper
 
   python3 web/make_og.py

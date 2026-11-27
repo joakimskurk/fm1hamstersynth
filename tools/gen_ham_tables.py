@@ -123,7 +123,7 @@ HVOICE = [
     (1.80, "i", 10.2, 6.0, 8000),       # E  the white one: the squeakiest
     (1.45, "u", 8.2, 3.5, 2600),        # F  the orange one: its mouth full of cheese
     (1.30, "a", 7.4, 2.5, 6000),        # G  the brown one: the deepest
-    (1.60, "e", 9.4, 5.0, 7500),        # A  the orange one, its mouth open, a seed in its paws
+    (1.60, "e", 9.4, 5.0, 7500),        # A  the orange one, its mouth open
     (1.55, "a", 9.0, 4.5, 7500),        # B  the grey one, smiling
     (1.40, "o", 6.8, 2.0, 6500),        # C  the one in sunglasses: cool, slow
 ]
@@ -251,6 +251,11 @@ def build():
     o.append(arr("HAM_BODY_PH", "uint32_t", bp, 6, "{}u"))
     # the vibrato of each hamster: 6.4 + key * 0.08 Hz, a phase step a control block
     o.append(arr("HAM_VIB_INC", "uint32_t", [int(round((6.4 + k * .08) * CB / FS * 2 ** 32)) for k in range(8)], 8, "{}u"))
+    # the sound knobs (0..32): LENGDE, a note's length, x 2^((v - 16) / 8) (16: as it was); LYS, the hamsters' two
+    # one-pole low-passes, from 200 Hz (0) up to 14 kHz (31), 32 off
+    o.append(arr("SND_LEN_Q8", "uint16_t", [int(round(256 * 2 ** ((v - 16) / 8))) for v in range(33)], 11))
+    o.append(arr("SND_LYS_A", "uint16_t", [int(round(32768 * (1 - math.exp(-2 * math.pi * 200 * 2 ** (v * 6.2 / 31) / 44100))))
+                                           for v in range(32)] + [32768], 11))
     o.append(arr("HAM_PAN_L", "int16_t", [int(round(32768 * math.cos((((k - 3.5) / 3.5 * .06) + 1) / 2 * math.pi / 2))) for k in range(8)], 8))
     o.append(arr("HAM_PAN_R", "int16_t", [int(round(32768 * math.sin((((k - 3.5) / 3.5 * .06) + 1) / 2 * math.pi / 2))) for k in range(8)], 8))
     o.append(arr("HAM_VEL_LG", "int32_t", [lg(v) for v in STEP_VELOCITY], 8))

@@ -65,14 +65,22 @@ Verktøykjeden (JieLi) og SDK-en: [docs/DINGHY_README.md](docs/DINGHY_README.md)
 | **PRESETS** | Sekvens A–H. Mens den spiller: byttes ved neste runde. |
 | **ALGORITHM** | Tempo, 50–220 BPM. |
 | **OCT− / OCT+** | Tangentene en oktav ned / opp (i EDIT: stegets oktav, −3 … +1). |
-| **ENV** | Angre (12 nivåer). |
+| **ENV** | Angre (12 nivåer). Hold: slett lyd-opptaket i sekvensen. |
 | **SEQ** | Tromster-siden (og trommene på). Hold: trommer av / på. |
 | **FX** | THALLHAMSTERGRINDCORE av / på: −1 oktav, vreng, dobbelt tempo. Hold: hamsterstemmen eller sidens stemme. |
 | **GLO** | SONG av / på. Hold: siden for song-rekkefølgen. |
 | **HOME** | Hjem. Hjemme: skiltet sier noe nytt. Hold: hjelp på skjermen. |
 | **SEL** (hold) | Slett sekvensen (ENV henter den tilbake). |
 | **SAVE** | Lagre nå. (Den lagrer også selv, to sekunder etter siste endring, når ingenting låter.) |
-| **KNOTT 1–4** | Swing, hamsternivå, Tromster-nivå, MIDI-kanal. |
+| **SAVE** (hold) | Oppsett: KNOTT 1–4 er swing, hamsternivå, Tromster-nivå og MIDI-kanal. |
+| **KNOTT 1–4** | Lyden: LYS, LENGDE, PIP, ROM (se under). Med REC mens den spiller tas de opp i sekvensen. |
+
+**Lyden (KNOTT 1–4):** LYS gjør hamsterne mørkere, LENGDE gjør tonene kortere eller lengre, PIP gir mindre eller
+mer pip og trille, og ROM gjør rommet tørrere eller større. I midtstilling (LYS helt opp) låter den som før. Skrur du
+mens den spiller med REC på, lagres knottens stilling i hvert steg du hører den i, og i stegene som passerer mens du
+skrur. De stegene får et grønt merke og spiller med sin egen lyd, mens de andre følger knottene. Uten REC endrer knottene
+lyden for alle steg uten egen lyd. **Hold ENV** sletter lyd-opptaket i sekvensen (ENV henter det tilbake). Knottene går
+også ut og inn som MIDI CC: 74 (LYS), 72 (LENGDE), 77 (PIP) og 91 (ROM).
 
 **I EDIT:** KNOTT 1 glide, KNOTT 2 arp (+7, +12), KNOTT 3 accent, KNOTT 4 ratchet (×1–×4). **ARP** blar også arp,
 **SEL** sletter steget, **SAVE** kopierer det til neste, **LFO** lager en tilfeldig sekvens.
@@ -106,8 +114,8 @@ FX (THALL) og GLO (SONG) lyser når de er på.
 
 Hamsterne og trommehamsteren er tegnet på nytt som pikselkunst i `tools/ham_sprites.py`, med samme kjennetegn som på
 siden: den gylne, den grå med solsikkefrø, den hvite som blunker, den oransje med ost, den brune, den oransje med tunga
-ute og et frø, den grå som smiler med lukkede øyne og den hvite med solbriller. (A og B har byttet plass fra siden, og
-den grå ga frøet sitt til den oransje: to like grå hamstere med frø var én for mye.) Én blekkfarge for omrisset og lys fra øvre
+ute, den grå som smiler med lukkede øyne og den hvite med solbriller. (A og B har byttet plass fra siden, og den grå
+som smiler har ikke lenger frø: to like grå hamstere med frø var én for mye.) Én blekkfarge for omrisset og lys fra øvre
 venstre hjørne. Hver figurpiksel er 2×2 skjermpiksler, som logoen og teksten.
 
 ## Skjermen

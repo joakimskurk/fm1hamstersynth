@@ -51,6 +51,11 @@
 #define ST_ARP(s) (((s) >> 8) & 3u)                          /* 0 off, 1 a fifth up, 2 an octave up */
 #define ST_RATCHET(s) ((((s) >> 10) & 3u) + 1u)
 #define ST_MAKE(key, oct) ((uint16_t)(ST_ON | (key) | (uint32_t)((oct) + 3) << 3))
+/* the sound knobs, 0..32 each: LYS (the hamsters through two low-passes; 32: open, as ever), LENGDE (a note's length,
+   16: as ever), PIP (the squeak and the trill, 16: as ever, 0: none), ROM (the room, 16: as ever, 0: dry). A step can
+   hold its own (hq.plock: REC while it plays), else the knob's */
+enum { SND_LYS, SND_LEN, SND_PIP, SND_ROM, NSND };
+#define SND_MAX 32u
 
 enum { DR_KICK, DR_SNARE, DR_HAT, DR_CLAP };
 /* main -> interrupt, 32 bits: the command in the top 4 bits */
@@ -75,7 +80,17 @@ static struct {
     volatile uint32_t song_len, bpm, thall, drums_on, swing, want_pat, lvl_ham, lvl_drum, off, hvoice;
     volatile uint32_t skip;                     /* the step fired as this (heng_fired) plays no note: it was played by
                                                    hand just before it, and recorded there */
-} hq = {.song_len = 1, .bpm = 120, .lvl_ham = 256, .lvl_drum = 256};
+    volatile uint8_t snd[NSND];                 /* the sound knobs */
+    volatile uint8_t plock[NPAT][16][NSND];     /* a step's own sound: 0 none (the knob's), else its value + 1 */
+} hq = {.song_len = 1, .bpm = 120, .lvl_ham = 256, .lvl_drum = 256, .snd = {32, 16, 16, 16}};
+
+static inline uint32_t snd_of(uint32_t p, uint32_t step, uint32_t k)   /* a step's sound: its own, else the knob's */
+{
+    uint32_t l = hq.plock[p & PMASK][step & 15u][k], v = l ? l - 1u : hq.snd[k];
+    return v > SND_MAX ? SND_MAX : v;
+}
+static inline uint32_t snd_pip_q8(uint32_t v) { return v * 16u; }                       /* 0 .. 2 */
+static inline uint32_t snd_rom_q8(uint32_t v) { return v <= 16u ? v * 16u : 256u + (v - 16u) * 48u; }   /* 0 .. 4 */
 
 /* ---- the two rings */
 static volatile uint32_t hc_q[32], hc_w, hc_r, he_q[64], he_w, he_r;
@@ -220,7 +235,7 @@ static tv_t tv[NTV];
 static dv_t dv[NDV];
 static int32_t room[2u * ROOM_N] __attribute__((section(".pool")));
 static uint32_t room_i, eng_age, nz_seed = 0x2545F491u;
-static int32_t nz_prev, nz_gain;
+static int32_t nz_prev, nz_gain, lys_z[4];
 static bq_t nz_bp, nz_lp;
 static volatile uint32_t heng_busy;             /* something sounds (main: no save to flash meanwhile) */
 /* (the interrupt -> main) where the sequence is, to record a note played while it plays into the step it was heard in:
@@ -254,7 +269,16 @@ typedef struct {                                /* a note, as the page's playTon
     uint32_t arp;                               /* 0, 7, 12 */
     uint32_t maxdur;                            /* THALL: its gate in frames; 0: a key (0.62 s) */
     uint32_t line;                              /* THALL: 0 the sequence's, 1 the hands' (each cuts only its own) */
+    uint32_t len, pip;                          /* the sound knobs LENGDE, PIP for it: Q8, 256 as ever */
 } note_t;
+static inline uint32_t len_of(uint32_t dur, const note_t *n)   /* a length, LENGDE's */
+{
+    return n->len == 256u ? dur : umax(MS(60), umin(dur * n->len >> 8, MS(2400)));
+}
+static inline int32_t pip_of(int32_t v, const note_t *n)        /* a squeak, a trill, PIP's */
+{
+    return n->pip == 256u ? v : (int32_t)(((int64_t)v * (int32_t)n->pip) >> 8);
+}
 
 /* the arpeggio: up at start, down at 2q, up at 3q, down at the end; those inside the note, in the order of time */
 static void arp_env(env_t *e, uint32_t ss, uint32_t dur, uint32_t start, int32_t up)
@@ -310,7 +334,7 @@ static void ham_on(const note_t *n)
     int32_t oc = n->toct < HAM_OCT_LO ? HAM_OCT_LO : n->toct > HAM_OCT_LO + (int32_t)HAM_NOCT - 2 ? HAM_OCT_LO + (int32_t)HAM_NOCT - 2 : n->toct;
     hv_t *h;
     h = ham_slot();
-    dur = n->arp ? umin(umax(ss * 108u / 100u, MS(180)), MS(480)) : MS(530);
+    dur = len_of(n->arp ? umin(umax(ss * 108u / 100u, MS(180)), MS(480)) : MS(530), n);
     h->hv = 0;
     h->key = (uint8_t)n->key;
     h->lgp = n->lgp;
@@ -353,7 +377,7 @@ static void ham_on(const note_t *n)
         env_seg(&h->pb, SEG_RAMP, 0, blk(gt));
     } else {                                    /* a little sharp at first, the voice more than its body */
         uint32_t tv0 = umin(MS(55), ss * 22u / 100u);
-        env_start(&h->pv, LG_H_V0);
+        env_start(&h->pv, pip_of(LG_H_V0, n));
         env_seg(&h->pv, SEG_RAMP, 0, blk(tv0));
         if (!n->arp) {                          /* then it drifts: a little up, a little under */
             uint32_t d1 = umin(MS(220), dur * 55u / 100u), d2 = umin(MS(460), dur * 94u / 100u);
@@ -369,8 +393,8 @@ static void ham_on(const note_t *n)
         env_start(&h->arp, 0);
     env_start(&h->vib, 0);                      /* the vibrato's depth: cents, Q8 */
     t2 = umin(MS(350), dur * 80u / 100u);
-    env_seg(&h->vib, SEG_RAMP, n->arp ? 384 : 922, blk(MS(80)));
-    env_seg(&h->vib, SEG_RAMP, n->arp ? 256 : 563, blk(t2 > MS(80) ? t2 - MS(80) : 1u));
+    env_seg(&h->vib, SEG_RAMP, pip_of(n->arp ? 384 : 922, n), blk(MS(80)));
+    env_seg(&h->vib, SEG_RAMP, pip_of(n->arp ? 256 : 563, n), blk(t2 > MS(80) ? t2 - MS(80) : 1u));
     h->on = 1;
 }
 
@@ -382,7 +406,7 @@ static void ham_on_hv(const note_t *n)
     int32_t oc = n->toct < HAM_OCT_LO ? HAM_OCT_LO : n->toct > HAM_OCT_LO + (int32_t)HAM_NOCT - 2 ? HAM_OCT_LO + (int32_t)HAM_NOCT - 2 : n->toct;
     hv_t *h;
     h = ham_slot();
-    dur = n->arp ? umin(umax(ss * 108u / 100u, MS(180)), MS(480)) : umin(umax(2u * ss + MS(60), MS(200)), MS(560));
+    dur = len_of(n->arp ? umin(umax(ss * 108u / 100u, MS(180)), MS(480)) : umin(umax(2u * ss + MS(60), MS(200)), MS(560)), n);
     h->hv = 1;
     h->key = (uint8_t)n->key;
     h->lgp = n->lgp;
@@ -411,7 +435,7 @@ static void ham_on_hv(const note_t *n)
     env_start(&h->br, LG_FLOOR);                /* the squeak's "tsk": a short high noise */
     env_seg(&h->br, SEG_RAMP, LG_H_BR1 + LG_OCT + v, blk(66));
     env_seg(&h->br, SEG_RAMP, LG_FLOOR, blk(MS(25)));
-    sq = HAM_HV_SQUEAK[n->key] + (n->vel > 9000 ? HAM_HV_SQUEAK[n->key] / 2 : 0);   /* (an accent: a bigger squeak) */
+    sq = pip_of(HAM_HV_SQUEAK[n->key] + (n->vel > 9000 ? HAM_HV_SQUEAK[n->key] / 2 : 0), n);   /* (an accent: a bigger squeak) */
     gt = umin(umax(ss * 42u / 100u, MS(35)), MS(160));
     close = dur * 70u / 100u;
     if (n->from) {                              /* a glide: from the note before, no squeak */
@@ -439,8 +463,8 @@ static void ham_on_hv(const note_t *n)
         env_seg(&h->vow, SEG_RAMP, 4096, blk(dur - close));
     }
     env_start(&h->vib, 0);                      /* its trill: quick, a little wider than the page's (cents, Q8) */
-    env_seg(&h->vib, SEG_RAMP, 2560, blk(MS(90)));
-    env_seg(&h->vib, SEG_RAMP, 4608, blk(dur * 80u / 100u > MS(90) ? dur * 80u / 100u - MS(90) : 1u));
+    env_seg(&h->vib, SEG_RAMP, pip_of(2560, n), blk(MS(90)));
+    env_seg(&h->vib, SEG_RAMP, pip_of(4608, n), blk(dur * 80u / 100u > MS(90) ? dur * 80u / 100u - MS(90) : 1u));
     h->on = 1;
 }
 
@@ -461,7 +485,7 @@ static void thall_on(const note_t *n)
     }
     t = &tv[best];
     t->line = (uint8_t)n->line;
-    dur = n->maxdur ? umin(umax(n->maxdur, MS(340)), MS(720)) : MS(620);
+    dur = len_of(n->maxdur ? umin(umax(n->maxdur, MS(340)), MS(720)) : MS(620), n);
     t->lgp = n->lgp;
     t->ph = t->bph = t->eph = t->vph = 0;
     t->vinc = HAM_VIB_INC[n->key];
@@ -514,8 +538,8 @@ static void thall_on(const note_t *n)
     env_start(&t->vib, 0);
     t1 = umin(MS(22), dur * 22u / 100u);
     t2 = umin(MS(70), dur * 72u / 100u);
-    env_seg(&t->vib, SEG_RAMP, n->arp ? 154 : 90, blk(t1));
-    env_seg(&t->vib, SEG_RAMP, n->arp ? 90 : 31, blk(t2 - t1));
+    env_seg(&t->vib, SEG_RAMP, pip_of(n->arp ? 154 : 90, n), blk(t1));
+    env_seg(&t->vib, SEG_RAMP, pip_of(n->arp ? 90 : 31, n), blk(t2 - t1));
     t->on = 1;
 }
 
@@ -655,6 +679,7 @@ static void drum_on(uint32_t id, uint32_t vc, int32_t vel)
 typedef struct { uint32_t at, kind; note_t n; uint32_t vc; } pend_t;   /* a ratchet's next hit: frames from now */
 static struct {
     uint32_t playing, song, ext, pat, step, pos, acc, thr, first, fired;
+    uint32_t cur_p, cur_s;                      /* the step that sounds now: its sound (LYS, ROM) is the hamsters' */
     int32_t last_lgp;                           /* the note before, for a glide; 0: none */
     pend_t pend[8];
     uint32_t npend, ext_n, ext_last, ext_len, now;
@@ -687,7 +712,7 @@ static void note_on(const note_t *n, uint32_t midi)
 }
 
 /* a step's note: now, and its ratchets after it. from: the pitch a glide comes from */
-static void step_note(uint32_t s, uint32_t step, int32_t from, uint32_t line)
+static void step_note(uint32_t s, uint32_t p, uint32_t step, int32_t from, uint32_t line)
 {
     uint32_t count = ST_RATCHET(s), k, sf = sq_step_frames(), sub = sf / count, midi;
     note_t n;
@@ -701,6 +726,8 @@ static void step_note(uint32_t s, uint32_t step, int32_t from, uint32_t line)
     n.arp = ST_ARP(s) == 1u ? 7u : ST_ARP(s) == 2u ? 12u : 0u;
     n.maxdur = umax(MS(35), sub * 88u / 100u);
     n.line = line;
+    n.len = SND_LEN_Q8[snd_of(p, step, SND_LEN)];
+    n.pip = snd_pip_q8(snd_of(p, step, SND_PIP));
     note_on(&n, midi);
     n.from = 0;
     for (k = 1; k < count && sq.npend < 8u; k++) {
@@ -716,6 +743,8 @@ static void sq_fire(void)                       /* the step sq.step of the patte
 {
     uint32_t step = sq.step, p = sq.pat & PMASK, s = hq.pat[p][step], d, mask = 0, fired = ++sq.fired;
     sq.npend = 0;                               /* (a new step: the last one's ratchets are over) */
+    sq.cur_p = p;
+    sq.cur_s = step;
     heng_step_info = step | p << 4 | sq.pos << 8;
     heng_step_at = sq.now;
     heng_step_len = sq_step_frames();
@@ -743,7 +772,7 @@ static void sq_fire(void)                       /* the step sq.step of the patte
     }
     if (s & ST_ON) {
         if (hq.skip != fired)                   /* (skip: played by hand a moment ago, and recorded here) */
-            step_note(s, step, sq.last_lgp, 0);
+            step_note(s, p, step, sq.last_lgp, 0);
         sq.last_lgp = note_lgp((uint32_t)((int32_t)HAM_MIDI[ST_KEY(s)] + 12 * ST_OCT(s)));
     }
     if (++sq.step >= 16u) {                     /* the bar is over: the song goes on, or the pattern asked for */
@@ -800,6 +829,8 @@ static void sq_command(uint32_t c)
         n.arp = 0;
         n.maxdur = 0;
         n.line = 1;
+        n.len = SND_LEN_Q8[umin(hq.snd[SND_LEN], SND_MAX)];
+        n.pip = snd_pip_q8(umin(hq.snd[SND_PIP], SND_MAX));
         note_on(&n, midi);
         break;
     }
@@ -816,7 +847,7 @@ static void sq_command(uint32_t c)
             }
         }
         sq.npend = 0;
-        step_note(s, step, from, 1);
+        step_note(s, p, step, from, 1);
         break;
     }
     case HC_DRUM:
@@ -1107,9 +1138,16 @@ static void heng_render(int32_t *out, uint32_t n)
     uint32_t f, i, k, busy = 0;
     int32_t pk = 0;
     for (f = 0; f < n; f += HCB) {
-        int32_t hl[HCB], hr[HCB], tm[HCB], dm[HCB], white[HCB];
-        uint32_t any_h = 0, any_d = 0;
+        int32_t hl[HCB], hr[HCB], tm[HCB], dm[HCB], white[HCB], lys_a;
+        uint32_t any_h = 0, any_d = 0, rf;
         sq_tick();
+        if (sq.playing) {                       /* LYS and ROM: the step that sounds, else the knobs */
+            lys_a = SND_LYS_A[snd_of(sq.cur_p, sq.cur_s, SND_LYS)];
+            rf = snd_rom_q8(snd_of(sq.cur_p, sq.cur_s, SND_ROM));
+        } else {
+            lys_a = SND_LYS_A[umin(hq.snd[SND_LYS], SND_MAX)];
+            rf = snd_rom_q8(umin(hq.snd[SND_ROM], SND_MAX));
+        }
         for (i = 0; i < HCB; i++)
             hl[i] = hr[i] = tm[i] = dm[i] = 0;
         nz_gain = 0;
@@ -1151,14 +1189,34 @@ static void heng_render(int32_t *out, uint32_t n)
             if (++room_i >= ROOM_N)
                 room_i = 0;
             busy |= (uint32_t)(el | er) != 0u;
-            if (hq.hvoice) {                    /* the hamster voice: a small room, a few reflections, crossed */
+            {
+                int32_t wl, wr;                 /* the room's echoes */
+                if (hq.hvoice) {                /* the hamster voice: a small room, a few reflections, crossed */
 #define ROOM(d, c) (room[2u * (room_i >= (d) ? room_i - (d) : room_i + ROOM_N - (d)) + (c)] >> 6)
-                l = hl[i] + ((ROOM(750u, 0u) * 15729 + ROOM(1014u, 1u) * 13107 + ROOM(1367u, 0u) * 9175) >> 12) + tm[i];
-                r = hr[i] + ((ROOM(838u, 1u) * 15729 + ROOM(1191u, 0u) * 13107 + ROOM(1632u, 1u) * 9175) >> 12) + tm[i];
+                    wl = (ROOM(750u, 0u) * 15729 + ROOM(1014u, 1u) * 13107 + ROOM(1367u, 0u) * 9175) >> 12;
+                    wr = (ROOM(838u, 1u) * 15729 + ROOM(1191u, 0u) * 13107 + ROOM(1632u, 1u) * 9175) >> 12;
 #undef ROOM
-            } else {
-                l = hl[i] + (((el >> 6) * 9961) >> 12) + tm[i];
-                r = hr[i] + (((er >> 6) * 9961) >> 12) + tm[i];
+                } else {
+                    wl = ((el >> 6) * 9961) >> 12;
+                    wr = ((er >> 6) * 9961) >> 12;
+                }
+                if (rf != 256u) {               /* ROM */
+                    wl = (int32_t)(((int64_t)wl * (int32_t)rf) >> 8);
+                    wr = (int32_t)(((int64_t)wr * (int32_t)rf) >> 8);
+                }
+                l = hl[i] + wl + tm[i];
+                r = hr[i] + wr + tm[i];
+            }
+            if (lys_a < 32768) {                /* LYS: two one-pole low-passes */
+                lys_z[0] += (int32_t)(((int64_t)(l - lys_z[0]) * lys_a) >> 15);
+                lys_z[1] += (int32_t)(((int64_t)(lys_z[0] - lys_z[1]) * lys_a) >> 15);
+                lys_z[2] += (int32_t)(((int64_t)(r - lys_z[2]) * lys_a) >> 15);
+                lys_z[3] += (int32_t)(((int64_t)(lys_z[2] - lys_z[3]) * lys_a) >> 15);
+                l = lys_z[1];
+                r = lys_z[3];
+            } else {                            /* (open: they follow, to start from where it is) */
+                lys_z[0] = lys_z[1] = l;
+                lys_z[2] = lys_z[3] = r;
             }
             d = (int32_t)(((int64_t)dm[i] * (int32_t)hq.lvl_drum) >> 8);
             l = ((int32_t)(((int64_t)l * (int32_t)hq.lvl_ham) >> 8) + d) >> HAM_MAKEUP_SH;
