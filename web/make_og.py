@@ -6,6 +6,8 @@ tour) and its own hamsters (tools/ham_sprites.py):
   docs/screens/ham-logo.png   the logo bar off the screen, 4 x (960 x 96)
   docs/screens/ham-icon.png   the orange hamster, its mouth open (64 x 64): the page's icon
   web/og.png                  the link preview (1200 x 630): the logo and three screens on the page's paper
+  docs/screens/ham-strip.png  the eight hamsters side by side, their own pixels (8 x 26 x 27): the demo's player
+  docs/screens/ham-drummer.png  the drummer's four frames side by side (4 x 56 x 45): the demo's player
 
   python3 web/make_og.py
 """
@@ -46,7 +48,21 @@ def main():
         d.rectangle([x - 4, 176, x + 360 + 3, 176 + 360 + 7], fill=INK)
         og.paste(Image.open(S / n).convert("RGB").resize((360, 360), Image.NEAREST), (x, 180))
     og.save(ROOT / "web" / "og.png")
-    print("ham-logo.png, ham-icon.png, web/og.png")
+    strip(ham_sprites.hamsters(), S / "ham-strip.png")
+    strip(ham_sprites.drummer(), S / "ham-drummer.png")
+    print("ham-logo.png, ham-icon.png, web/og.png, ham-strip.png, ham-drummer.png")
+
+
+def strip(grids, path):
+    """grids (rows of colours, None clear), side by side, one pixel each, on nothing"""
+    h, w = len(grids[0]), len(grids[0][0])
+    im = Image.new("RGBA", (w * len(grids), h), (0, 0, 0, 0))
+    for i, g in enumerate(grids):
+        for y, row in enumerate(g):
+            for x, c in enumerate(row):
+                if c:
+                    im.putpixel((i * w + x, y), c + (255,))
+    im.save(path)
 
 
 if __name__ == "__main__":

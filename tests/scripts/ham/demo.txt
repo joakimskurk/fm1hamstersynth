@@ -1,56 +1,83 @@
-# HamsterSynth's sound demo (tools/ham_demo.sh), about 49 s at 120 BPM (a bar: 4 s)
-# 0.6 s  the eight hamsters, one by one: C D E F G A B C (the white keys C4..C5)
-600 keys 0x80
-780 keys 0
-1100 keys 0x200
-1280 keys 0
-1600 keys 0x800
-1780 keys 0
-2100 keys 0x1000
-2280 keys 0
-2600 keys 0x4000
-2780 keys 0
-3100 keys 0x10000
-3280 keys 0
-3600 keys 0x40000
-3780 keys 0
-4100 keys 0x80000
-4400 keys 0
-# 4.7 s  the drums by hand: kick, hat, snare, hat, kick, kick, snare, kick + clap (the black keys)
-4700 keys 0x100
-4760 keys 0
-4825 keys 0x2000
-4885 keys 0
-4950 keys 0x400
-5010 keys 0
-5075 keys 0x2000
-5135 keys 0
-5200 keys 0x100
-5260 keys 0
-5325 keys 0x100
-5385 keys 0
-5450 keys 0x400
-5510 keys 0
-5700 keys 0x8100
-5800 keys 0
-# 6.2 s  PLAY: the pattern A, the page's own
-6200 btn 12
-# 14.2 s  SEQ: the Tromster joins in (its page); 18.2 s home
-14150 btn 11
-18150 btn 8
-# 22.2 s  SONG on (GLO) and PLAY: A B C D, each with its drums; the Tromster's page for C
-22180 btn 7
-22200 btn 12
-30150 btn 11
-34150 btn 8
-# 38.2 s  THALLHAMSTERGRINDCORE (FX): the song again, an octave down, distorted, twice as fast
-38180 btn 12
-38185 btn 2
-38200 btn 12
-# 46.2 s  stop, back to the hamsters: a C major chord, and the sign
-46190 btn 12
-46195 btn 2
-46400 keys 0x84880
-47600 keys 0
-47700 btn 8
-49000 end
+# HamsterSynth's sound demo (tools/ham_demo.sh): the song of tests/ham/demo_song.h at 128 BPM (a pattern: 3.75 s),
+# about 57 s. Lines "#@ ms name": its parts, for the page's player.
+#@ 0 Hei
+# 0.4 s  hello, by hand: C E G C
+400 keys 0x80
+520 keys 0
+520 keys 0x800
+640 keys 0
+640 keys 0x4000
+760 keys 0
+760 keys 0x80000
+1000 keys 0
+# 1.6 s  SONG on (GLO), PLAY: A B, dark, then opening
+#@ 1600 Intro
+1400 btn 7
+1600 btn 12
+# 9.1 s  the groove: C D C D; the Tromster's page while D plays
+#@ 9100 Groove
+12850 btn 11
+16600 btn 8
+# the second time: LYS turned down by hand, and up again
+16800 enc 2 -2
+16980 enc 2 -2
+17160 enc 2 -2
+17340 enc 2 -2
+17520 enc 2 -2
+17700 enc 2 -2
+17880 enc 2 -2
+18060 enc 2 -2
+18240 enc 2 -2
+18420 enc 2 -2
+18600 enc 2 -2
+20600 enc 2 2
+20780 enc 2 2
+20960 enc 2 2
+21140 enc 2 2
+21320 enc 2 2
+21500 enc 2 2
+21680 enc 2 2
+21860 enc 2 2
+22040 enc 2 2
+22220 enc 2 2
+22400 enc 2 2
+# 24.1 s  the build: E (its own sound: opening, squeakier, tighter), a snare roll by hand at its end
+#@ 24100 Opp
+27380 keys 0x400
+27440 keys 0
+27500 keys 0x400
+27560 keys 0
+27620 keys 0x400
+27680 keys 0
+27730 keys 0x500
+27790 keys 0
+# 27.9 s  the hook: F G F G; ROM up. The second time: LENGDE and PIP up, and over it by hand E5, F5, E5, D5
+#@ 27850 Refreng
+27900 enc 5 6
+35100 enc 3 10
+35150 enc 4 6
+35350 keys 0x800000
+36900 keys 0
+37225 keys 0x1000000
+38800 keys 0
+39100 keys 0x800000
+40700 keys 0
+40975 keys 0x200000
+42500 keys 0
+42700 enc 3 -10
+42720 enc 4 -6
+42740 enc 5 -6
+# 42.85 s  THALLHAMSTERGRINDCORE (FX): C D F G, an octave down, twice as fast
+#@ 42850 HAMSTERCORE
+42830 btn 2
+# 50.35 s  the end: H, long and dark
+#@ 50350 Slutt
+50330 btn 2
+# 54.1 s  stop; a long A minor chord by hand (LENGDE and ROM all the way up), and the sign
+54100 btn 12
+54150 enc 3 16
+54200 enc 5 16
+54400 keys 0x10890
+55400 keys 0
+55500 btn 8
+56600 end

@@ -15,9 +15,11 @@ installere den på FM-1.
 > (FM-1-emulatoren), men ikke på en fysisk enhet. Installer på eget ansvar. Går noe galt: hold **OCT−** mens du slår
 > på, så starter FM-1 i USB-redning, der en installer alltid virker.
 
-**Hør den:** [hamster-demo.mp3](docs/hamster-demo.mp3) (49 s). Hamsterne én og én, trommene for hånd, sekvens A,
-Tromster, en song på fire sekvenser og THALLHAMSTERGRINDCORE. Det er firmwarens egen kode som spiller, kjørt på en
-datamaskin: `make demo` lager den på nytt, også som video med skjermen (`build/demo/`).
+**Hør den:** [hamster-demo.mp3](docs/hamster-demo.mp3) (57 s), eller på nettsiden, der hamsterne synger med. En sang i
+A-moll på 128 BPM, med åtte sekvenser: en mørk intro som åpner seg, groove med LYS skrudd for hånd, en oppbygging med
+ratchets, refreng, et utbrudd av THALLHAMSTERGRINDCORE og en drømmende slutt. Det er firmwarens egen kode som
+spiller, kjørt på en datamaskin: `make demo` lager den på nytt (`tools/ham_demo.sh`, sangen i `tests/ham/demo_song.h`,
+hva som trykkes når i `tests/scripts/ham/demo.txt`), også som video med skjermen (`build/demo/`).
 
 ## Hamsterne sier ting
 

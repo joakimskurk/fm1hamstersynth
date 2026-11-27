@@ -116,7 +116,7 @@ if (app) {
   const KEYMAP = { a: 7, w: 8, s: 9, e: 10, d: 11, f: 12, t: 13, g: 14, y: 15, h: 16, u: 17, j: 18, k: 19, o: 20, l: 21, p: 22 };
   const BTNMAP = { ' ': 12, r: 13, z: 0, x: 1 };
   const ENCMAP = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [6, 1], ArrowDown: [6, -1] };
-  const typing = () => /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
+  const typing = () => /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '') || !!document.activeElement?.closest?.('#player');
   window.addEventListener('keydown', (e) => {
     if (!node || typing() || e.metaKey || e.ctrlKey || e.altKey) return;
     const c = e.key.length === 1 ? e.key.toLowerCase() : e.key;

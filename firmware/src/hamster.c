@@ -507,6 +507,9 @@ static void set_thall(uint32_t on)
         heng_cmd(HCMD(HC_CHOKE, 0));
     thall = on;
     hq.thall = thall;
+#ifdef HAM_DEMO
+    printf("%6u ms  thall %u\n", fm1_ms, thall);
+#endif
     if (thall) {
         static char l2[24];
         sb = l2; l2[0] = 0;
@@ -1443,6 +1446,9 @@ static void events(void)
         }
         case HE_NOTE: {
             uint32_t key = a & 7u, midi = a >> 4 & 127u, vel = a >> 12 & 127u;
+#ifdef HAM_DEMO
+            printf("%6u ms  hamster %u\n", fm1_ms, key);   /* (the demo's player: who sings when) */
+#endif
             t_ham[key] = fm1_ms ? fm1_ms : 1u;
             ham_shown[key] = ~0u;
             sel_key = key;
@@ -1450,6 +1456,9 @@ static void events(void)
             break;
         }
         case HE_DRUM:
+#ifdef HAM_DEMO
+            printf("%6u ms  drums %u\n", fm1_ms, a & 15u);
+#endif
             for (k = 0; k < 4u; k++)
                 if (a >> k & 1u)
                     midi_note_out(0x99u, DRUM_NOTE[k], 100);

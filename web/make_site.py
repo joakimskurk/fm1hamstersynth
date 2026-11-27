@@ -7,7 +7,8 @@
   firmware/hamstersynth-VER.fwsc   the package the page installs (its SHA-256 in the page: a damaged download is
                                    never offered)
   screens/                         the logo, the icon, the screens (docs/screens), the link preview (web/og.png)
-  demo/hamstersynth-demo.mp3       the sound demo (docs/hamster-demo.mp3, tools/ham_demo.sh)
+  demo/hamstersynth-demo.mp3       the sound demo (docs/hamster-demo.mp3, tools/ham_demo.sh), and .json: who sings when
+                                   (its player: app/player.js)
   app/                             HamsterSynth itself in the browser: hamstersynth.wasm (web/app/build.sh, the firmware
                                    compiled to WebAssembly), worklet.js (it, in the audio thread), hamster.js (its
                                    screen, its panel)
@@ -31,7 +32,8 @@ ROOT = HERE.parent
 BLOCKS, BLK, KEEP = 20, 0x30, 0x2F
 SCREENS = {"logo.png": "ham-logo.png", "icon.png": "ham-icon.png", "sign.png": "ham-sign.png",
            "tromster.png": "ham-tromster.png", "home.png": "ham-home.png", "edit.png": "ham-edit.png",
-           "song.png": "ham-song.png", "help.png": "ham-help.png"}
+           "song.png": "ham-song.png", "help.png": "ham-help.png", "strip.png": "ham-strip.png",
+           "drummer.png": "ham-drummer.png"}
 
 
 def product_of(raw):
@@ -75,13 +77,14 @@ def main(pkg, version, out, wasm="build/web/hamstersynth.wasm"):
             raise SystemExit(f"{wasm}: not there (sh web/app/build.sh makes it)")
         shutil.copy(wasm, out / "app" / "hamstersynth.wasm")
         wasm_n = wasm.stat().st_size
-    for f in ("hamster.js", "worklet.js"):
+    for f in ("hamster.js", "worklet.js", "player.js"):
         shutil.copy(HERE / "app" / f, out / "app" / f)
     shutil.copy(pkg, out / "firmware" / name)
     for dst, src in SCREENS.items():
         shutil.copy(ROOT / "docs" / "screens" / src, out / "screens" / dst)
     shutil.copy(HERE / "og.png", out / "screens" / "og.png")   # the link preview (web/make_og.py)
     shutil.copy(ROOT / "docs" / "hamster-demo.mp3", out / "demo" / "hamstersynth-demo.mp3")
+    shutil.copy(ROOT / "docs" / "hamster-demo.json", out / "demo" / "hamstersynth-demo.json")   # (who sings when)
     (out / "index.html").write_text(html, encoding="utf-8")
     (out / ".nojekyll").write_text("")
     print(f"site: {out}: index.html ({len(html)} B), firmware/{name} ({len(raw)} B, {product}), "
