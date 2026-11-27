@@ -123,8 +123,8 @@ HVOICE = [
     (1.80, "i", 10.2, 6.0, 8000),       # E  the white one: the squeakiest
     (1.45, "u", 8.2, 3.5, 2600),        # F  the orange one: its mouth full of cheese
     (1.30, "a", 7.4, 2.5, 6000),        # G  the brown one: the deepest
-    (1.60, "e", 9.4, 5.0, 7500),        # A  the grey one, smiling
-    (1.55, "a", 9.0, 4.5, 7500),        # B  the orange one, its mouth open
+    (1.60, "e", 9.4, 5.0, 7500),        # A  the orange one, its mouth open, a seed in its paws
+    (1.55, "a", 9.0, 4.5, 7500),        # B  the grey one, smiling
     (1.40, "o", 6.8, 2.0, 6500),        # C  the one in sunglasses: cool, slow
 ]
 HV_Q = (3.5, 5.0, 6.0)

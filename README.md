@@ -60,7 +60,7 @@ Verktøykjeden (JieLi) og SDK-en: [docs/DINGHY_README.md](docs/DINGHY_README.md)
 | **Svarte tangenter** | C#4 D#4 F#4 G#4: kick, snare, hat, clap for hånd. |
 | **PLAY** | Spill / stopp (sekvensen, eller songen når SONG er på). |
 | **REC** | Stegopptak: hamsteren lagres i steget og går videre. **SEL** legger inn pause. Mens det spilles (sekvens eller song): tonen lagres i steget du hører den i, det nærmeste, runde etter runde. |
-| **EDIT** | Rediger: en tangent bytter tonen uten å gå videre. **SELECT** velger steg. |
+| **EDIT** | Rediger: en tangent bytter tonen uten å gå videre (når den står; mens den spiller tar tangentene opp, som REC). **SELECT** velger steg. |
 | **SELECT** | Velg steg (og hør det). |
 | **PRESETS** | Sekvens A–H. Mens den spiller: byttes ved neste runde. |
 | **ALGORITHM** | Tempo, 50–220 BPM. |
@@ -105,8 +105,9 @@ FX (THALL) og GLO (SONG) lyser når de er på.
 ## Figurene
 
 Hamsterne og trommehamsteren er tegnet på nytt som pikselkunst i `tools/ham_sprites.py`, med samme kjennetegn som på
-siden: den gylne, den grå med solsikkefrø, den hvite som blunker, den oransje med ost, den brune, den grå som smiler
-med lukkede øyne, den oransje med tunga ute og den hvite med solbriller. Én blekkfarge for omrisset og lys fra øvre
+siden: den gylne, den grå med solsikkefrø, den hvite som blunker, den oransje med ost, den brune, den oransje med tunga
+ute og et frø, den grå som smiler med lukkede øyne og den hvite med solbriller. (A og B har byttet plass fra siden, og
+den grå ga frøet sitt til den oransje: to like grå hamstere med frø var én for mye.) Én blekkfarge for omrisset og lys fra øvre
 venstre hjørne. Hver figurpiksel er 2×2 skjermpiksler, som logoen og teksten.
 
 ## Skjermen

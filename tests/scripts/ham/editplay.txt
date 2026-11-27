@@ -1,0 +1,10 @@
+# EDIT, then PLAY (the pattern A at 120 BPM from 0.6 s, a step every 250 ms), then hamsters by hand while it plays:
+# they record where they are heard, as with REC, not into the step the editor holds. B4 at 3.32 s (into step 12,
+# which then plays nothing more itself), G5 at 3.98 s (into step 15). The next round plays them
+300 btn 6
+600 btn 12
+3320 keys 0x40000
+3400 keys 0
+3980 keys 0x4000000
+4060 keys 0
+8500 end

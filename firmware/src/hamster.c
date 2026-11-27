@@ -10,7 +10,8 @@
  *   PLAY         play / stop (the pattern, or the song with SONG on)
  *   REC          step recording: a hamster is written to the step and the step moves on; SEL writes a rest.
  *                While it plays (a pattern or the song): into the step it is heard in (the nearest), over and over
- *   EDIT         the editor: a key changes the step's note and stays; SELECT walks the steps;
+ *   EDIT         the editor: a key changes the step's note and stays (stopped; while it plays it records, as REC);
+ *                SELECT walks the steps;
  *                KNOB 1 glide, KNOB 2 arpeggio (+7, +12), KNOB 3 accent, KNOB 4 ratchet (x1..x4); OCT- OCT+ its octave;
  *                ARP the arpeggio too; SEL deletes the step; SAVE copies it to the next; LFO a random pattern
  *   ENV          undo (12 deep)
@@ -365,7 +366,7 @@ static void press(uint32_t key, int32_t oct, uint32_t vel)
 {
     oct = oct < -3 ? -3 : oct > 1 ? 1 : oct;
     sel_key = key;
-    if (page == PG_HOME && edit_on) {           /* the editor: the step's note changes, its effects stay */
+    if (page == PG_HOME && edit_on && !playing) {   /* the editor, stopped: the step's note changes, its effects stay */
         uint32_t s = hq.pat[active][cur_step];
         undo_push();
         hq.pat[active][cur_step] = (uint16_t)((s & ST_ON) ? (s & ~0x3Fu) | key | (uint32_t)(oct + 3) << 3 : ST_MAKE(key, oct));
@@ -376,7 +377,7 @@ static void press(uint32_t key, int32_t oct, uint32_t vel)
         return;
     }
     sing(key, oct, vel);
-    if (page == PG_HOME && rec_on && playing) { /* recorded while it plays: where it was heard */
+    if (page == PG_HOME && (rec_on || edit_on) && playing) {   /* recorded while it plays (REC or EDIT): where it was heard */
         uint32_t p, step = live_step(&p);
         undo_push_p(p);
         hq.pat[p][step] = ST_MAKE(key, oct);
@@ -482,6 +483,8 @@ static void hint(char *t)
         if (!drums_on) sb_s(" · AV (HOLD SEQ)");
     } else if (page == PG_SONG) {
         sb_s(song_playing ? "SPILLER SONGEN" : song_mode ? "PLAY SPILLER SONGEN" : "GLO SLÅR SONG PÅ");
+    } else if (edit_on && playing) {            /* the editor while it plays: the keys record where it plays */
+        sb_s("SPILL MED · KNOTTENE: "); sb_step(cur_step);
     } else if (edit_on) {                       /* the step the editor holds, in words */
         sb_step_words(cur_step);
     } else if (rec_on) {

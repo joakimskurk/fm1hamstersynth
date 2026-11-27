@@ -66,6 +66,8 @@ run "REC writes and moves on, SEL a rest, ENV undoes; the editor changes a step,
     "$OUT/hamstersynth $OUT/ham_rec tests/scripts/ham/rec.txt >$OUT/ham_rec.log && python3 $P notes $OUT/ham_rec.log 60,64,79,48,69,69,69,69,69,69,64,67,64,52,67,64,60,64,69,72,55,71,67,62,69"
 run "REC while it plays: a note into the step it was heard in (the nearest), not twice; SEL a rest; the next round plays them" sh -c \
     "$OUT/hamstersynth $OUT/ham_od tests/scripts/ham/overdub.txt >$OUT/ham_od.log && python3 $P notes $OUT/ham_od.log 48,64,67,64,52,67,64,62,53,67,69,72,55,71,71,67,79,48,64,67,64,52,67,64,62,53,67,69,72,71,67,79,48"
+run "EDIT while it plays: the keys record where they are heard, as REC (the step the editor holds stays)" sh -c \
+    "$OUT/hamstersynth $OUT/ham_ep tests/scripts/ham/editplay.txt >$OUT/ham_ep.log && python3 $P notes $OUT/ham_ep.log 48,64,67,64,52,67,64,62,53,67,69,71,55,71,79,62,48,64,67,64,52,67,64,62,53,67,69,71,55,71,79,62"
 run "a song written on its page (AB), SONG on, PLAY: A's bar, then B's" sh -c \
     "$OUT/hamstersynth $OUT/ham_song tests/scripts/ham/song.txt >$OUT/ham_song.log && python3 $P notes $OUT/ham_song.log 72,$A,72"
 run "a tour of its pages: the screens (build/host/ham_tour-*.png)" sh -c \

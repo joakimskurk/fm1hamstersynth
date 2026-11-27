@@ -72,8 +72,8 @@ KINDS = [
     {"fur": "white", "wink": True, "spot": True},
     {"fur": "orange", "cheese": True},
     {"fur": "brown", "blaze": True},
-    {"fur": "grey", "blaze": True, "seed": True, "happy": True},
-    {"fur": "orange", "blaze": True, "tongue": True},
+    {"fur": "orange", "blaze": True, "tongue": True, "seed": True},
+    {"fur": "grey", "blaze": True, "happy": True},
     {"fur": "white", "shades": True},
 ]
 
@@ -152,7 +152,14 @@ def face(g, k):
                   "..OZZZO......OZZZO..",
                   "...OOO........OOO..."], 3, 8, {"O": "O", "Z": "Z", "L": "L"})
     held = k.get("seed") or k.get("cheese")
-    if k.get("seed"):                           # a sunflower seed, held up
+    if k.get("seed") and k.get("tongue"):       # a shorter seed, held lower: under the tongue, not against it
+        stamp(g, ["..OO..",
+                  ".OZZO.",
+                  "OZLZZO",
+                  "OZLZZO",
+                  ".OZZO.",
+                  "..OO.."], 10, 18, {"O": "O", "Z": "Z", "L": "L"})
+    elif k.get("seed"):                         # a sunflower seed, held up
         stamp(g, ["..OO..",
                   ".OZZO.",
                   "OZLZZO",
