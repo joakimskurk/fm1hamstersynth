@@ -219,13 +219,14 @@ FH = H + 1                                      # a pose's rows: one more, for i
 
 def hamster(k, pose=None):
     """a hamster at rest, its pixels W x H; or in a pose, W x FH, its feet on the last row: "rest"; "sing" (its mouth
-    open, a row lower: it ducks); "sharp" (singing higher: its ears up a row, its eyes squeezed, its mouth wide);
+    open, a row lower: it ducks); "sharp" (singing higher: it ducks as well, its ears up a row, its eyes squeezed, its
+    mouth wide);
     "flat" (THALL's hard press: three rows lower, as the page squashes it). Rows are taken out where it is one colour
     across, and added where its ears are: every outline stays two screen pixels thick"""
     g = face(shade(body(k)), k, "sing" if pose == "flat" else pose or "rest")
     if pose is None:
         return colour(g, k)
-    drop = {"sing": {22}, "flat": {6, 21, 22}}.get(pose, set())
+    drop = {"sing": {22}, "sharp": {22}, "flat": {6, 21, 22}}.get(pose, set())
     g = [r for i, r in enumerate(g) if i not in drop]
     if pose == "sharp":                         # its ears up: a row more of them
         g = g[:1] + [g[1][:]] + g[1:]

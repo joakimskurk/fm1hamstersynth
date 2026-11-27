@@ -278,7 +278,7 @@ static void draw_logo(uint32_t core, uint32_t dance)
 /* ---- a hamster on the stage: its place 60 x 60, four a row, no frame, no letter. state: 0 at rest, 1 chosen (its
  * shadow warm), 2 singing (its shadow pink). pose (firmware/gen/ham_art.h, drawn in its own pixels: every outline two
  * screen pixels): HP_REST; HP_SING, a note (its mouth open, a row lower: it ducks); HP_SHARP, a sharp, sung higher and
- * brighter (its ears up, its eyes squeezed shut, its mouth wide, stars in its corners; its paws stay, on its food or
+ * brighter (it ducks as well, its ears up, its eyes squeezed shut, its mouth wide, stars in its corners; its paws stay, on its food or
  * its belly); HP_FLAT, THALL's hard press (three rows lower, as the page squashes it) */
 static const char *const NOTE_NAME[8] = {"C", "D", "E", "F", "G", "A", "B", "C"};
 static void fb_shadow(int32_t cx, int32_t y, int32_t w, uint16_t c)   /* an oval, 6 high: three rows of two */
