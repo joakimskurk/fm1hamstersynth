@@ -1598,18 +1598,15 @@ static void events(void)
     }
 }
 
-static uint32_t drum_frame(uint32_t m)          /* the drums that hit (a bit each) -> what the drummer does */
-{
-    if (m & 8u) return DF_UP;                   /* a clap: both high */
-    if ((m & 6u) == 6u) return DF_BOTH;         /* snare and hat: both sticks down */
-    if (m & 2u) return DF_LEFT;                 /* the snare: the left stick on the tom */
-    if (m & 4u) return DF_RIGHT;                /* the hat: the right one on the cymbal */
-    if (m & 1u) return DF_KICK;                 /* the kick: down it goes, the bass drum's paw lit */
-    return DF_READY;
+static uint32_t drum_frame(uint32_t m)          /* the drums that hit (kick 1, snare 2, hat 4, clap 8) -> its frame */
+{                                               /* (all of them at once: the snare its left stick, the hat its right,
+                                                   the kick down it goes; a clap, both high) */
+    if (m & 8u) return 8u + (m & 1u);
+    return (m >> 1 & 1u) | (m >> 2 & 1u) << 1 | (m & 1u) << 2;
 }
 static void drummer(void)                       /* the Tromster's hamster: a hit, held a moment, then ready */
 {
-    uint32_t f = DF_READY;
+    uint32_t f = 0;
     if (playing) {
         uint32_t sm = 30000u / (bpm * (thall ? 2u : 1u)), hold = sm * 60u / 100u;
         hold = hold > 130u ? 130u : hold;

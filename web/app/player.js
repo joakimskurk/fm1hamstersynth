@@ -54,7 +54,7 @@ if (P) {
     }
   }
   function drum(mask) {                           // the drummer, as on the FM-1: each drum its own move
-    const f = mask & 8 ? 3 : (mask & 6) === 6 ? 5 : mask & 2 ? 1 : mask & 4 ? 2 : mask & 1 ? 4 : 0;
+    const f = mask & 8 ? 8 + (mask & 1) : (mask >> 1 & 1) | (mask >> 2 & 1) << 1 | (mask & 1) << 2;
     drummer.dataset.f = f;
     clearTimeout(drummer._t);
     drummer._t = setTimeout(() => { drummer.dataset.f = 0; }, 120);
