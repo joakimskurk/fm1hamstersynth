@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """HamsterSynth's pictures, drawn here pixel by pixel: the eight hamsters and the Tromster's drummer.
 
-Each is drawn on a grid of its own pixels (a hamster 26 x 24, the drummer 56 x 45); the screen shows each of them as
+Each is drawn on a grid of its own pixels (a hamster 26 x 27, the chubby one 30 x 27, each in a place 30 wide; the drummer 56 x 45); the screen shows each of them as
 2 x 2 of its own, as the logo's letters and the text. One ink for every outline, the light from the upper left: a
 pixel of fur against the outline at its right or below is in shade, at its left or above (on the upper left) in light.
 
@@ -63,7 +63,40 @@ HALF = [
     "....OOOOOOOOO",   # 25
     ".............",   # 26  (the feet)
 ]
-W, H = 26, 27
+W0, H = 26, 27                                  # a hamster's own grid
+W = 30                                          # every hamster's place: the chubby one's width, the others in its middle
+
+# the chubby one (the eighth, in sunglasses): rounder, wider, a squat head on it, its cheeks and its belly full;
+# its left half (15), mirrored
+HALF_CHUBBY = [
+    "...............",   # 0
+    "...............",   # 1
+    "...............",   # 2
+    "......OOO......",   # 3   small ears, low
+    ".....OPPPO.OOOO",   # 4   the head, squat and wide
+    "....OFPPFOOFFFF",   # 5
+    "...OFFFFFFFFFFF",   # 6
+    "..OFFFFFFFFFFFF",   # 7
+    "..OFFFFFFFFFFFF",   # 8   the eyes (the glasses)
+    ".OFFFFFFFFFFFFF",   # 9
+    ".OFFFFFFFFFFFFF",   # 10
+    "OFFFFFFFFFFFFBB",   # 11  as round as a ball: widest from here
+    "OFFFFFFFFFFFBBB",   # 12  the nose; the cheeks full
+    "OFFFFFFFFFFBBBB",   # 13  the mouth
+    "OFFFFFFFFFBBBBB",   # 14
+    "OFFFFFFFFBBBBBB",   # 15
+    "OFFFFFFFBBBBBBB",   # 16
+    "OFFFFFFBBBBBBBB",   # 17  a big belly
+    "OFFFFFFBBBBBBBB",   # 18
+    "OFFFFFFBBBBBBBB",   # 19
+    "OFFFFFFBBBBBBBB",   # 20
+    ".OFFFFFBBBBBBBB",   # 21
+    ".OFFFFFFBBBBBBB",   # 22
+    "..OFFFFFFBBBBBB",   # 23
+    "...OOFFFFFFBBBB",   # 24
+    ".....OOOOOOOOOO",   # 25
+    "...............",   # 26  (the feet)
+]
 
 # the eight: C D E F G A B C, as the page has them
 KINDS = [
@@ -74,7 +107,7 @@ KINDS = [
     {"fur": "brown", "blaze": True},
     {"fur": "orange", "blaze": True, "tongue": True},
     {"fur": "grey", "blaze": True, "happy": True},
-    {"fur": "white", "shades": True},
+    {"fur": "white", "shades": True, "chubby": True},
 ]
 
 
@@ -88,7 +121,7 @@ def stamp(g, art, x0, y0, cmap):
 
 def body(k, rows=H):
     """the hamster's grid of keys: O F B P (and H S b after the shading), before its face"""
-    g = [list(h + h[::-1]) for h in HALF[:rows]]
+    g = [list(h + h[::-1]) for h in (HALF_CHUBBY if k.get("chubby") else HALF)[:rows]]
     if k.get("blaze"):                          # a cream stripe from the forehead down to the muzzle
         for y, (a, b) in {3: (12, 13), 4: (12, 13), 5: (12, 13), 6: (11, 14), 7: (11, 14), 8: (11, 14),
                           9: (11, 14), 10: (11, 14)}.items():
@@ -138,40 +171,43 @@ def face(g, k, pose="rest"):
     """the eyes, the nose, the mouth, the cheeks, the paws, the feet; and what it holds or wears. pose: "rest", "sing"
     (its mouth open), "sharp" (singing higher: its eyes squeezed shut, > <, its mouth wide; its paws where they are,
     for some hold their food)"""
+    dx = (len(g[0]) - W0) // 2                  # (the chubby one is wider: its face in its middle)
+    put = lambda art, x0, y0, cmap: stamp(g, art, x0 + dx, y0, cmap)
     held = k.get("seed") or k.get("cheese")
     lo = 1 if held and pose != "rest" else 0    # (what it holds a row lower: its mouth open over it)
     eye = ["WE", "EE", "EE"]
     shut = [".OO.", "O..O"]                     # an eye shut, smiling
     if pose == "sharp":                         # a high note: both eyes squeezed shut, > <
-        stamp(g, ["OO.", "..O", "OO."], 5, 9, {"O": "O"})
-        stamp(g, [".OO", "O..", ".OO"], 18, 9, {"O": "O"})
+        put(["OO.", "..O", "OO."], 5, 9, {"O": "O"})
+        put([".OO", "O..", ".OO"], 18, 9, {"O": "O"})
     elif k.get("happy"):
-        stamp(g, shut, 5, 10, {"O": "O"})
-        stamp(g, shut, 17, 10, {"O": "O"})
+        put(shut, 5, 10, {"O": "O"})
+        put(shut, 17, 10, {"O": "O"})
     else:
-        stamp(g, eye, 6, 9, {"E": "E", "W": "W"})
+        put(eye, 6, 9, {"E": "E", "W": "W"})
         if k.get("wink"):
-            stamp(g, shut, 17, 10, {"O": "O"})
+            put(shut, 17, 10, {"O": "O"})
         else:
-            stamp(g, eye, 18, 9, {"E": "E", "W": "W"})
-    stamp(g, ["KK"], 3, 12, {"K": "K"})         # the cheeks
-    stamp(g, ["KK"], 21, 12, {"K": "K"})
-    stamp(g, ["NN"], 12, 12, {"N": "N"})        # the nose
+            put(eye, 18, 9, {"E": "E", "W": "W"})
+    cheek = ["KK", "KK"] if k.get("chubby") else ["KK"]   # the cheeks (the chubby one's fuller)
+    put(cheek, 3, 12, {"K": "K"})
+    put(cheek, 21, 12, {"K": "K"})
+    put(["NN"], 12, 12, {"N": "N"})        # the nose
     if pose == "sharp":
         mouth = MOUTH_HIGH3 if held else MOUTH_HIGH
     elif pose == "sing":
         mouth = MOUTH_SING_TONGUE if k.get("tongue") else MOUTH_SING
     else:
         mouth = MOUTH_TONGUE if k.get("tongue") else MOUTH_REST
-    stamp(g, mouth, 10, 13, {"O": "O", "M": "M", "T": "T"})
+    put(mouth, 10, 13, {"O": "O", "M": "M", "T": "T"})
     if k.get("shades"):                         # sunglasses over both eyes
-        stamp(g, ["OOOOOOOOOOOOOOOOOOOO",
+        put(["OOOOOOOOOOOOOOOOOOOO",
                   ".OZZZZZOOOOOOZZZZZO.",
                   ".OZLZZZO....OZLZZZO.",
                   "..OZZZO......OZZZO..",
                   "...OOO........OOO..."], 3, 8, {"O": "O", "Z": "Z", "L": "L"})
     if k.get("seed"):                           # a sunflower seed, held up
-        stamp(g, ["..OO..",
+        put(["..OO..",
                   ".OZZO.",
                   "OZLZZO",
                   "OZLZZO",
@@ -180,7 +216,7 @@ def face(g, k, pose="rest"):
                   ".OZZO.",
                   "..OO.."], 10, 16 + lo, {"O": "O", "Z": "Z", "L": "L"})
     if k.get("cheese"):                         # a wedge of cheese
-        stamp(g, ["....OO..",
+        put(["....OO..",
                   "..OOYYO.",
                   "OOYYYYYO",
                   "OYYCYYYO",
@@ -190,14 +226,14 @@ def face(g, k, pose="rest"):
                   ".OOOOOO."], 9, 16 + lo, {"O": "O", "Y": "Y", "y": "y", "C": "C"})
     if held:                                    # its paws on what it holds
         y = 19 + lo
-        stamp(g, ["pp", "qq"], 8 if k.get("cheese") else 9, y, {"p": "p", "q": "q"})
-        stamp(g, ["pp", "qq"], 16 if k.get("cheese") else 15, y, {"p": "p", "q": "q"})
+        put(["pp", "qq"], 8 if k.get("cheese") else 9, y, {"p": "p", "q": "q"})
+        put(["pp", "qq"], 16 if k.get("cheese") else 15, y, {"p": "p", "q": "q"})
     else:                                       # its paws in front of it, soft
-        stamp(g, ["pp", "qq"], 8, 17, {"p": "p", "q": "q"})
-        stamp(g, ["pp", "qq"], 16, 17, {"p": "p", "q": "q"})
+        put(["pp", "qq"], 8, 17, {"p": "p", "q": "q"})
+        put(["pp", "qq"], 16, 17, {"p": "p", "q": "q"})
     if len(g) > 26:                             # the feet, under it
         for x0 in (5, 18):
-            stamp(g, ["OpppO", ".OOO."], x0 - 1, 25, {"O": "O", "p": "p"})
+            put(["OpppO", ".OOO."], x0 - 1, 25, {"O": "O", "p": "p"})
     return g
 
 
@@ -224,12 +260,15 @@ def hamster(k, pose=None):
     "flat" (THALL's hard press: three rows lower, as the page squashes it). Rows are taken out where it is one colour
     across, and added where its ears are: every outline stays two screen pixels thick"""
     g = face(shade(body(k)), k, "sing" if pose == "flat" else pose or "rest")
+    pad = (W - len(g[0])) // 2                  # (in the middle of its place, W wide)
+    g = [["."] * pad + r + ["."] * pad for r in g]
     if pose is None:
         return colour(g, k)
     drop = {"sing": {22}, "sharp": {22}, "flat": {6, 21, 22}}.get(pose, set())
     g = [r for i, r in enumerate(g) if i not in drop]
     if pose == "sharp":                         # its ears up: a row more of them
-        g = g[:1] + [g[1][:]] + g[1:]
+        e = 4 if k.get("chubby") else 1
+        g = g[:e] + [g[e][:]] + g[e:]
     g = [["."] * W for _ in range(FH - len(g))] + g
     return colour(g, k)
 

@@ -309,7 +309,7 @@ static void draw_ham(uint32_t i, uint32_t state, uint32_t pose)
             uint8_t v = sp[y * (int32_t)HAM_W + x];
             if (v != 255u) {
                 uint16_t c = HAM_PAL[v];
-                int32_t px = cx + 4 + 2 * x, py = top + 2 * y;
+                int32_t px = cx + 30 - (int32_t)HAM_W + 2 * x, py = top + 2 * y;   /* (HAM_W 30: the cell's width) */
                 fb_px(px, py, c);
                 fb_px(px + 1, py, c);
                 fb_px(px, py + 1, c);

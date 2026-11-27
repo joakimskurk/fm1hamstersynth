@@ -125,7 +125,7 @@
   .stage.core .now { color: var(--pink); }
   .band { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; align-items: end; }
   .hm { position: relative; text-align: center; }
-  .hm i { display: block; width: calc(26px * var(--n, 3)); height: calc(28px * var(--n, 3)); margin: 0 auto; background: url(screens/strip.png) 0 0 / 3200% 100% no-repeat;
+  .hm i { display: block; width: calc(30px * var(--n, 3)); height: calc(28px * var(--n, 3)); margin: 0 auto; background: url(screens/strip.png) 0 0 / 3200% 100% no-repeat;
           image-rendering: pixelated; }
   .hm[data-k="0"] i { background-position-x: 0.0000%; }
   .hm[data-k="0"].sing i { background-position-x: 3.2258%; }
@@ -195,7 +195,7 @@
   .track:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
   .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--yellow); }
   .seeds { position: absolute; inset: 0; background: radial-gradient(ellipse 3px 6px at 50% 50%, #2a2f38 62%, rgba(255,255,255,.35) 66%, transparent 72%) 0 0 / 14px 100% repeat-x; }
-  .runner { position: absolute; bottom: calc(100% - 4px); left: 0; width: 52px; height: 56px; margin-left: -26px;
+  .runner { position: absolute; bottom: calc(100% - 4px); left: 0; width: 60px; height: 56px; margin-left: -30px;
             background: url(screens/strip.png) 0 0 / 3200% 100% no-repeat; image-rendering: pixelated; pointer-events: none; }
   .runner.bump { animation: hop .18s; }
   @keyframes hop { 50% { transform: translateY(-6px); } }
@@ -210,7 +210,7 @@
     .fm1 { grid-template-columns: 1fr; }
     .band { gap: 3px; } .hm b { height: 6px; margin-top: -3px; } .drummer { width: 112px; } .stage { padding-top: 30px; }
     .time { min-width: 0; font-size: 12px; } .deck { gap: 10px; }
-    .runner { width: 26px; height: 28px; margin-left: -13px; }
+    .runner { width: 30px; height: 28px; margin-left: -15px; }
     .shots { grid-template-columns: repeat(2, 1fr); }
     td:first-child { white-space: normal; }
   }

@@ -11,7 +11,7 @@ if (P) {
   const band = P.querySelector('.band');
   const fit = () => {                             // the hamsters a whole number of times their pixels: 1, 2 or 3 x
     const w = hams[0] ? hams[0].getBoundingClientRect().width : 78;
-    band.style.setProperty('--n', String(Math.max(1, Math.min(3, Math.floor(w / 26)))));
+    band.style.setProperty('--n', String(Math.max(1, Math.min(3, Math.floor(w / 30)))));
   };
   fit();
   window.addEventListener('resize', fit);

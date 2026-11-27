@@ -34,7 +34,7 @@ def main():
     for y, row in enumerate(g):
         for x, c in enumerate(row):
             if c:
-                icon.paste(c + (255,), (6 + 2 * x, 5 + 2 * y, 8 + 2 * x, 7 + 2 * y))
+                icon.paste(c + (255,), (2 + 2 * x, 5 + 2 * y, 4 + 2 * x, 7 + 2 * y))
     icon.save(S / "ham-icon.png")
     og = Image.new("RGB", (1200, 630), PAPER)
     d = ImageDraw.Draw(og)
