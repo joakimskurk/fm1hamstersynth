@@ -173,10 +173,11 @@
   @keyframes fly { from { transform: translate(-50%, 0); opacity: 1; }
                    to { transform: translate(calc(-50% + var(--dx, 0px)), -56px) rotate(18deg); opacity: 0; } }
   .kit { display: flex; justify-content: center; margin: 8px 0 0; }
-  .drummer { width: 168px; aspect-ratio: 56 / 45; background: url(screens/drummer.png) 0 0 / 400% 100% no-repeat;
+  .drummer { width: 168px; aspect-ratio: 56 / 45; background: url(screens/drummer.png) 0 0 / 600% 100% no-repeat;
              image-rendering: pixelated; }
-  .drummer[data-f="1"] { background-position-x: 33.3333%; } .drummer[data-f="2"] { background-position-x: 66.6667%; }
-  .drummer[data-f="3"] { background-position-x: 100%; }
+  .drummer[data-f="1"] { background-position-x: 20%; } .drummer[data-f="2"] { background-position-x: 40%; }
+  .drummer[data-f="3"] { background-position-x: 60%; } .drummer[data-f="4"] { background-position-x: 80%; }
+  .drummer[data-f="5"] { background-position-x: 100%; }
   .deck { display: flex; align-items: center; gap: 14px; margin: 26px 0 0; }
   .pp { position: relative; flex: none; width: 72px; height: 72px; padding: 0; border-radius: 50%; border: 3px solid var(--ink);
         background: var(--yellow); box-shadow: 0 4px 0 #050607; cursor: pointer; }

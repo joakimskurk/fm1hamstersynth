@@ -96,7 +96,7 @@ static uint32_t ham_shown[8], ham_sharp[8], sub_led;     /* ham_sharp: its last 
 /* the sound knobs: turned while REC plays, recorded (the value, when, the last turn); what MIDI was last told */
 static uint32_t snd_rv[NSND], snd_rt[NSND], snd_rlast, cc_sent[NSND] = {32, 16, 16, 16};
 /* the drummer */
-static uint32_t dr_frame, dr_step_t, dr_hit, dr_alt, dr_prev_t, dr_prev_kind;
+static uint32_t dr_frame, dr_step_t, dr_hit, dr_prev_t, dr_prev_kind;   /* dr_hit, dr_prev_kind: the drums, a bit each */
 
 static uint32_t rnd_s = 0x1234567u;
 static uint32_t rnd(uint32_t n) { rnd_s = rnd_s * 1664525u + 1013904223u; return (rnd_s >> 8) % n; }
@@ -735,6 +735,38 @@ static void draw_home(void)                     /* the hamsters that changed, th
 }
 
 static const uint16_t DRUM_COL[4] = {C_PINK, C_CREAM2, C_YELLOW, C_SKY};
+/* a step of a drum: a pad in its colour, its foot darker, a shine, its mark (the hamster kit's: a paw); off, a
+   socket with a dot (on a beat brighter); the step that plays: a white line round it. Marks in 2 x 2 pixels */
+static const char *const DRUM_MARK[5][4] = {
+    {".##.", "####", "####", ".##."},          /* kick: round */
+    {"####", "#..#", "####", ""},              /* snare: a drum, its rims */
+    {"####", ".##.", ".##.", ""},              /* hat: a cymbal on its stand */
+    {"#..#", ".##.", ".##.", "#..#"},          /* clap: a spark */
+    {"#.#.#", ".....", ".###.", ".###."},      /* the hamster kit: a paw */
+};
+static void drum_pad(int32_t x, int32_t y, uint32_t row, uint32_t kit, uint32_t on, uint32_t now, uint32_t beat)
+{
+    if (on) {
+        uint16_t c = DRUM_COL[row];
+        const char *const *m = DRUM_MARK[kit ? 4u : row];
+        int32_t w = 0, h = 0, j, k;
+        while (m[0][w]) w++;
+        while (h < 4 && m[h][0]) h++;
+        fb_pill(x, y, 18, 18, dark565(c));       /* its foot, then its face */
+        fb_rect(x + 2, y, 14, 14, c);
+        fb_rect(x, y + 2, 18, 12, c);
+        fb_rect(x + 2, y + 2, 2, 2, C_WHITE2);  /* a shine */
+        for (j = 0; j < h; j++)
+            for (k = 0; k < w; k++)
+                if (m[j][k] == '#')
+                    fb_rect(x + 9 - w + 2 * k, y + 7 - h + 2 * j, 2, 2, kit ? C_PINK2 : C_INK2);
+    } else {
+        fb_pill(x, y, 18, 18, beat ? C_STEP0B : C_STEP0);
+        fb_rect(x + 8, y + 8, 2, 2, beat ? C_SEQ_BEAT : C_SEQ_DOT);
+    }
+    if (now)
+        fb_pill_line(x, y, 18, 18, C_WHITE2);
+}
 static void legend(int32_t x, int32_t y, const char *key, const char *what)   /* "KEY  what": a key, its meaning */
 {
     sf_text(sf_text(x, y, key, C_CREAM2, 2) + 6, y, what, C_EDGE, 2);
@@ -763,13 +795,9 @@ static void draw_trom(void)
         fb_pill(56, y + 2, 15, 14, v == 3u ? C_ORANGE : sel ? C_INK : C_INK2);   /* its voice (4: the hamster kit) */
         sf_text_mid(56, 15, y + 4, d, v == 3u ? C_INK : sel ? C_YELLOW : C_CREAM2, 2);
         (void)k;
-        for (i = 0; i < 8u; i++) {
-            uint32_t on = hq.drum[p][r] >> i & 1u, now = playing && (play_step & 7u) == i;
-            int32_t x = 77 + (int32_t)i * 20 + (i >= 4u ? 3 : 0);
-            fb_rect(x, y, 18, 18, on ? DRUM_COL[r] : (i & 3u) ? C_STEP0 : C_STEP0B);
-            if (now)
-                fb_frame(x, y, 18, 18, 2, C_WHITE2);
-        }
+        for (i = 0; i < 8u; i++)
+            drum_pad(77 + (int32_t)i * 20 + (i >= 4u ? 3 : 0), y, r, v == 3u, hq.drum[p][r] >> i & 1u,
+                     playing && (play_step & 7u) == i, (i & 3u) == 0u);
     }
 }
 
@@ -1521,8 +1549,7 @@ static void events(void)
             dr_hit = 0;
             if (drums_on)
                 for (k = 0; k < 4u; k++)
-                    dr_hit |= hq.drum[play_pat][k] >> (play_step & 7u) & 1u;
-            if (dr_hit) dr_alt ^= 1u;
+                    dr_hit |= (hq.drum[play_pat][k] >> (play_step & 7u) & 1u) << k;   /* (which: kick 1, snare 2, hat 4, clap 8) */
             if (page == PG_TROM || (page == PG_SONG && play_step == 0u)) rd_page = 1;
             break;
         }
@@ -1548,7 +1575,7 @@ static void events(void)
                     midi_note_out(0x99u, DRUM_NOTE[k], 100);
             if (!playing) {                     /* by hand: the drummer plays it */
                 dr_prev_t = fm1_ms ? fm1_ms : 1u;
-                dr_prev_kind = a & 8u ? 3u : a & 2u ? 1u : a & 4u ? 2u : 0u;
+                dr_prev_kind = a & 15u;
             }
             break;
         case HE_BAR:
@@ -1571,21 +1598,25 @@ static void events(void)
     }
 }
 
-static void drummer(void)                       /* the Tromster's hamster: the page's frames */
+static uint32_t drum_frame(uint32_t m)          /* the drums that hit (a bit each) -> what the drummer does */
 {
-    static const uint8_t CYC[2][3] = {{2, 3, 1}, {1, 3, 2}};
-    static const uint8_t PREV[4][5] = {{1, 2, 3, 0, 0}, {1, 3, 2, 0, 0}, {2, 3, 1, 0, 0}, {3, 1, 2, 3, 0}};
-    uint32_t f = 0;
+    if (m & 8u) return DF_UP;                   /* a clap: both high */
+    if ((m & 6u) == 6u) return DF_BOTH;         /* snare and hat: both sticks down */
+    if (m & 2u) return DF_LEFT;                 /* the snare: the left stick on the tom */
+    if (m & 4u) return DF_RIGHT;                /* the hat: the right one on the cymbal */
+    if (m & 1u) return DF_KICK;                 /* the kick: down it goes, the bass drum's paw lit */
+    return DF_READY;
+}
+static void drummer(void)                       /* the Tromster's hamster: a hit, held a moment, then ready */
+{
+    uint32_t f = DF_READY;
     if (playing) {
-        if (dr_hit) {
-            uint32_t sm = 30000u / (bpm * (thall ? 2u : 1u)), d = sm * 45u / 100u;
-            d = d < 85u ? 85u : d > 155u ? 155u : d;
-            f = CYC[dr_alt][(fm1_ms - dr_step_t) / d % 3u];
-        }
+        uint32_t sm = 30000u / (bpm * (thall ? 2u : 1u)), hold = sm * 60u / 100u;
+        hold = hold > 130u ? 130u : hold;
+        if (dr_hit && fm1_ms - dr_step_t < hold) f = drum_frame(dr_hit);
     } else if (dr_prev_t) {
-        uint32_t i = (fm1_ms - dr_prev_t) / 88u;
-        if (i >= 5u || !PREV[dr_prev_kind][i]) dr_prev_t = 0;
-        else f = PREV[dr_prev_kind][i];
+        if (fm1_ms - dr_prev_t < 140u) f = drum_frame(dr_prev_kind);
+        else dr_prev_t = 0;
     }
     if (f != dr_frame) {
         dr_frame = f;

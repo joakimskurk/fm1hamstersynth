@@ -15,7 +15,7 @@ if (P) {
   };
   fit();
   window.addEventListener('resize', fit);
-  let tl = null, last = -1, ih = 0, id = 0, playing = false, drumT = 0, beat = 0;
+  let tl = null, last = -1, ih = 0, id = 0, playing = false, beat = 0;
 
   const fmt = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
   const total = () => (audio.duration && isFinite(audio.duration) ? audio.duration * 1000 : tl ? tl.len : 0);
@@ -53,8 +53,8 @@ if (P) {
       h.appendChild(n);
     }
   }
-  function drum(mask) {                           // the drummer: a stick up, the other, both (a clap)
-    const f = mask & 8 ? 3 : (drumT ^= 1) ? 1 : 2;
+  function drum(mask) {                           // the drummer, as on the FM-1: each drum its own move
+    const f = mask & 8 ? 3 : (mask & 6) === 6 ? 5 : mask & 2 ? 1 : mask & 4 ? 2 : mask & 1 ? 4 : 0;
     drummer.dataset.f = f;
     clearTimeout(drummer._t);
     drummer._t = setTimeout(() => { drummer.dataset.f = 0; }, 120);

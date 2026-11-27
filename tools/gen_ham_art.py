@@ -264,7 +264,8 @@ def build():
     o.append(f"#define DRUM_W {ham_sprites.DW}u                               /* the drummer, its pixels (2 x 2) */")
     o.append(f"#define DRUM_H {ham_sprites.DH}u")
     o.append(carr("DRUM_PAL", "uint16_t", [rgb565(*c) for c in dpal], 8, "0x{:04X}"))
-    o.append("static const uint8_t DRUM_SPR[4][DRUM_W * DRUM_H] = {")
+    o.append("enum { DF_READY, DF_LEFT, DF_RIGHT, DF_UP, DF_KICK, DF_BOTH };   /* its frames (ham_sprites.DRUM_POSES) */")
+    o.append(f"static const uint8_t DRUM_SPR[{len(frames)}][DRUM_W * DRUM_H] = {{")
     for px in frames:
         o.append("    {" + ",".join(str(v) for v in px) + "},")
     o.append("};")

@@ -66,18 +66,18 @@ HALF = [
 W0, H = 26, 27                                  # a hamster's own grid
 W = 30                                          # every hamster's place: the chubby one's width, the others in its middle
 
-# the chubby one (the eighth, in sunglasses): rounder, wider, a squat head on it, its cheeks and its belly full;
-# its left half (15), mirrored
+# the chubby one (the eighth, in sunglasses): as tall as the others, its ears as theirs, but wider, round, its cheeks
+# and its belly full; its left half (15), mirrored
 HALF_CHUBBY = [
-    "...............",   # 0
-    "...............",   # 1
-    "...............",   # 2
-    "......OOO......",   # 3   small ears, low
-    ".....OPPPO.OOOO",   # 4   the head, squat and wide
-    "....OFPPFOOFFFF",   # 5
-    "...OFFFFFFFFFFF",   # 6
-    "..OFFFFFFFFFFFF",   # 7
-    "..OFFFFFFFFFFFF",   # 8   the eyes (the glasses)
+    "....OOO........",   # 0   the ears as the others', a little further out on its wider head
+    "...OFFPO.......",   # 1
+    "..OFPPPFO.OOOOO",   # 2
+    "..OFPPPFOOFFFFF",   # 3
+    "..OFFPFFFFFFFFF",   # 4
+    "..OFFFFFFFFFFFF",   # 5
+    ".OFFFFFFFFFFFFF",   # 6
+    ".OFFFFFFFFFFFFF",   # 7
+    ".OFFFFFFFFFFFFF",   # 8   the eyes (the glasses)
     ".OFFFFFFFFFFFFF",   # 9
     ".OFFFFFFFFFFFFF",   # 10
     "OFFFFFFFFFFFFBB",   # 11  as round as a ball: widest from here
@@ -267,7 +267,7 @@ def hamster(k, pose=None):
     drop = {"sing": {22}, "sharp": {22}, "flat": {6, 21, 22}}.get(pose, set())
     g = [r for i, r in enumerate(g) if i not in drop]
     if pose == "sharp":                         # its ears up: a row more of them
-        e = 4 if k.get("chubby") else 1
+        e = 1
         g = g[:e] + [g[e][:]] + g[e:]
     g = [["."] * W for _ in range(FH - len(g))] + g
     return colour(g, k)
@@ -363,8 +363,8 @@ def kit_back():
     return g
 
 
-def kit_front():
-    """the toms and the bass drum with its paw, in front of the hamster"""
+def kit_front(thump=False):
+    """the toms and the bass drum with its paw, in front of the hamster (thump: the paw lit, the kick's)"""
     g = blank(DW, DH)
     for x0 in (9, 37):                          # two toms
         tom = outlined(lambda x, y: (None if (y == 0 and (x == 0 or x == 9)) else
@@ -389,29 +389,42 @@ def kit_front():
                  "..PPPP..",
                  ".PPPPPP.",
                  ".PPPPPP.",
-                 "..PPPP.."], 7, 6, {"P": RED[1]})
+                 "..PPPP.."], 7, 6, {"P": SPARK if thump else RED[1]})
     layer(g, drum, 17, 23)
     return g
 
 
-def arm(g, shoulder, paw, stick_end):
-    """an arm from its shoulder to its paw, the paw round its stick: the stick first, the arm over it"""
-    (ax, ay), (bx, by) = shoulder, paw
-    line(g, bx, by, stick_end[0], stick_end[1], STICK, INK)
+def arm(g, shoulder, elbow, paw, stick_end, body=None):
+    """an arm from its shoulder by its elbow to its paw, round, the paw round its stick (a bead at its tip): the stick
+    first, the arm over it. Its outline only where it is off the hamster (body: its pixels), so it grows out of it"""
+    line(g, paw[0], paw[1], stick_end[0], stick_end[1], STICK, INK)
+    tx, ty = stick_end
+    for ox, oy in ((0, 0), (1, 0), (0, 1), (1, 1)):          # the bead
+        if 0 <= ty + oy < len(g) and 0 <= tx + ox < len(g[0]):
+            g[ty + oy][tx + ox] = STICK
 
-    def dist(x, y):                             # from (x, y) to the arm's middle line
+    def dist(x, y, a, b):                       # from (x, y) to the segment a..b
+        (ax, ay), (bx, by) = a, b
         vx, vy, wx, wy = bx - ax, by - ay, x - ax, y - ay
-        t = max(0.0, min(1.0, (wx * vx + wy * vy) / float(vx * vx + vy * vy)))
+        t = max(0.0, min(1.0, (wx * vx + wy * vy) / float(vx * vx + vy * vy or 1)))
         return ((x - ax - t * vx) ** 2 + (y - ay - t * vy) ** 2) ** .5
 
     def fill(x, y):
-        d2 = (x - bx) ** 2 + (y - by) ** 2
-        if d2 <= 1.0:
-            return PAW
-        if d2 <= 5.0 or dist(x, y) <= 1.9:
-            return FUR["orange"][0] if x < (ax + bx) / 2 and dist(x, y) < 1.0 else FUR["orange"][1]
+        if (x - paw[0]) ** 2 + (y - paw[1]) ** 2 <= 2.3:
+            return PAW_S if y > paw[1] else PAW
+        d = min(dist(x, y, shoulder, elbow), dist(x, y, elbow, paw))
+        if d <= 1.75:
+            up = dist(x, y - 1, shoulder, elbow) > d or dist(x, y - 1, elbow, paw) > d   # (its upper side: light)
+            return FUR["orange"][0] if up and d > .6 else FUR["orange"][1]
         return None
-    layer(g, outlined(fill, DW, DH), 0, 0)
+    f = [[fill(x, y) for x in range(DW)] for y in range(DH)]
+    for y in range(DH):
+        for x in range(DW):
+            if f[y][x]:
+                g[y][x] = f[y][x]
+            elif not (body and body[y][x]) and any(0 <= y + oy < DH and 0 <= x + ox < DW and f[y + oy][x + ox]
+                                                   for ox, oy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                g[y][x] = INK
 
 
 def drummer_hamster():
@@ -429,28 +442,41 @@ def sparks(g, x, y, side):
             g[yy][xx] = SPARK
 
 
+DRUM_POSES = ("ready", "left", "right", "up", "kick", "both")   # its frames
+
+
 def drummer():
+    """the drummer's frames (DRUM_POSES): ready, the sticks up a little; left, its left stick on the left tom (the
+    snare); right, its right stick on the cymbal (the hat); up, both high (a clap); kick, ready, a pixel lower, the
+    bass drum's paw lit; both, both sticks down (snare and hat at once)"""
+    mx = lambda p: (DW - 1 - p[0], p[1])     # (the right arm: the left one's mirror)
+    READY = ((18, 20), (13, 22), (12, 18), (7, 11))
+    TOM = ((18, 20), (12, 21), (14, 23), (11, 26))
+    UP = ((18, 20), (13, 16), (13, 11), (9, 3))
+    CYMBAL = ((37, 20), (43, 21), (42, 16), (46, 17))
+    poses = {"ready": (READY, [mx(p) for p in READY]), "left": (TOM, [mx(p) for p in READY]),
+             "right": (READY, CYMBAL), "up": (UP, [mx(p) for p in UP]), "kick": (READY, [mx(p) for p in READY]),
+             "both": (TOM, CYMBAL)}
     frames = []
     ham = drummer_hamster()
-    for f in range(4):
+    for pose in DRUM_POSES:
         g = blank(DW, DH)
         layer(g, kit_back(), 0, 0)
-        layer(g, ham, 15, 6)
-        front = kit_front()
+        hy = 7 if pose == "kick" else 6
+        layer(g, ham, 15, hy)
+        front = kit_front(pose == "kick")
         layer(g, front, 0, 0)
-        left_up, right_up = f in (1, 3), f in (2, 3)
-        # the arms: the sticks down onto the toms, or up in the air
-        if left_up:
-            arm(g, (17, 19), (11, 10), (6, 2))
-        else:
-            arm(g, (17, 19), (15, 24), (11, 27))
-        if right_up:
-            arm(g, (38, 19), (44, 10), (49, 2))
-        else:
-            arm(g, (38, 19), (40, 24), (44, 27))
-        if f == 1:
-            sparks(g, 5, 2, -1)
-        if f == 2:
-            sparks(g, 50, 2, 1)
+        body = [[0 <= y - hy < len(ham) and 0 <= x - 15 < len(ham[0]) and ham[y - hy][x - 15] is not None and
+                 not front[y][x] for x in range(DW)] for y in range(DH)]   # (the hamster, where it shows)
+        left, right = poses[pose]
+        arm(g, *left, body)
+        arm(g, *right, body)
+        if pose in ("left", "both"):            # where a stick meets a drum or the cymbal: a flash
+            sparks(g, 10, 25, -1)
+        if pose in ("right", "both"):
+            sparks(g, 47, 16, 1)
+        if pose == "up":
+            sparks(g, 8, 2, -1)
+            sparks(g, 47, 2, 1)
         frames.append(g)
     return frames
