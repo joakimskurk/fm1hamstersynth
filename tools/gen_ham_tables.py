@@ -245,23 +245,19 @@ def build():
             o.append("    {" + ", ".join(str(v) for v in row) + "},")
         o.append("};")
     o.append(arr("HAM_HV_BODY", "int16_t", hb))
-    # the sub (the chubby one): a hum, "mmm". A voice's harmonics (falling 4.6 dB an octave) through a nose: its murmur
-    # at 270 Hz, its brighter ones at 1, 2.3 and 3.2 kHz (a little going on up high: a hum, not a buzz), a dip at
-    # 750 Hz; up to 4.5 kHz. A table a semitone, MIDI 24 (C1) .. 60
-    # (C4): its peak 0.98 of full (phases spread, Schroeder's), and a gain to bring each to an RMS of 0.5 (SUB_HUM_G,
-    # Q14: the low ones are peakier)
-    res = lambda f, fc, bw: 1 / np.sqrt(1 + ((f - fc) / (bw / 2)) ** 2)
+    # the sub (the chubby one): nearly a sine, as it first was, and a little top. Its root, its second harmonic at a
+    # fifth, and from the third up a little, falling (-22 dB at the third, a sixth of that at the 18th), gone over
+    # 1.5 kHz: a hint of a voice, never two strong ones in a critical band (at 55 Hz that rasps). Phases together.
+    # A table a semitone, MIDI 24 (C1) .. 60 (C4): its peak 0.98 of full, and a gain to an RMS of 0.5 (SUB_HUM_G, Q14)
     xw = np.arange(WT_N) / WT_N * 2 * np.pi
     hum, hg = [], []
     for m in range(SUB_LO, SUB_HI + 1):
         f0 = 440 * 2 ** ((m - 69) / 12)
-        n = int(min(40, 4500 // f0))
         y = np.zeros(WT_N)
-        for k in range(1, n + 1):
+        for k in range(1, int(min(40, 3000 // f0)) + 1):
             f = k * f0
-            h = (.25 + res(f, 270, 120) + .62 * res(f, 1000, 250) + .42 * res(f, 2300, 350) + .24 * res(f, 3200, 400)) * \
-                (1 - .6 * res(f, 750, 150))
-            y += h / k ** .76 * (1.6 if k == 1 else 1) * np.sin(k * xw - np.pi * k * (k - 1) / n)   # (its root: the weight)
+            a = 1 if k == 1 else .2 if k == 2 else .08 * 3 / k / (1 + (f / 1500) ** 4)
+            y += a * np.sin(k * xw)
         y *= .98 / np.abs(y).max()
         hg.append(int(round(.5 / np.sqrt((y ** 2).mean()) * 16384)))
         hum.append([int(round(v * 32767)) for v in y] + [int(round(y[0] * 32767))])

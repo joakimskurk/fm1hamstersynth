@@ -680,13 +680,13 @@ static void drum_on(uint32_t id, uint32_t vc, int32_t vel)
 }
 
 /* ---- the sequencer (all of it in the interrupt) */
-/* ---- the sub: the chubby one's line. One note at a time, deep, and hummed: "mmm", a voice through a nose (its
-   tables, SUB_HUM: its murmur at 270 Hz, brighter ones up at 1, 2.3 and 3.2 kHz, a dip at 750), a quick start with a
-   blip of pitch from above (hm!), no trill, a glide from the note before. Two octaves under its step's note; not through the room, nor LYS,
+/* ---- the sub: the chubby one's line. One note at a time, round and deep: nearly a sine, a little of its second
+   harmonic and a little top (its tables, SUB_HUM), a hum (its third and fifth) as it begins and a blip of pitch from
+   above (hm!), a glide from the note before when the step has one. Two octaves under its step's note; not through the room, nor LYS,
    nor THALL's octave: the floor under the hamsters */
 #define LG_SUB (-203000)                        /* its level: 2 dB over a hamster, by RMS (a bass is felt less) */
 #define LG_SUB_BLIP (10923)                     /* two semitones */
-typedef struct { uint8_t on; uint32_t ph; int32_t lgp, a, tg; const int16_t *tw; env_t amp, pv; } sub_t;
+typedef struct { uint8_t on; uint32_t ph; int32_t lgp, a, tg; const int16_t *tw; env_t amp, pv, hum; } sub_t;
 static sub_t subv;
 static uint32_t sub_midi(uint32_t midi)          /* a key's note, two octaves down (C1 at the lowest) */
 {
@@ -715,13 +715,15 @@ static void sub_note_on(const note_t *n)
         env_seg(&v->pv, SEG_RAMP, 0, blk(MS(25)));
         v->ph = v->on ? v->ph : 0u;
     }
+    env_start(&v->hum, 12000);                  /* (how much hum: Q15, gone in 70 ms) */
+    env_seg(&v->hum, SEG_RAMP, 0, blk(MS(70)));
     v->lgp = n->lgp;
     v->on = 1;
 }
 static void sub_block(int32_t *mix)
 {
     sub_t *v = &subv;
-    int32_t alg = env_step(&v->amp), a1, da;
+    int32_t alg = env_step(&v->amp), hum = env_step(&v->hum), a1, da;
     uint32_t inc = ex2_inc(v->lgp + env_step(&v->pv)), i;
     a1 = (int32_t)(ex2_q24(alg) >> 9);          /* Q15 */
     da = (a1 - v->a) / (int32_t)HCB;
@@ -731,6 +733,8 @@ static void sub_block(int32_t *mix)
         v->ph += inc;
         s = v->tw[k] + (((v->tw[k + 1u] - v->tw[k]) * (int32_t)f) >> 16);
         s = (s * v->tg) >> 14;
+        if (hum)                                /* (its start: a hum) */
+            s += ((HAM_SIN[(v->ph * 3u) >> 20] + (HAM_SIN[(v->ph * 5u) >> 20] >> 1)) * hum) >> 16;
         v->a += da;
         mix[i] += (s * v->a) >> 7;              /* Q15 * Q15 -> Q23 */
     }
