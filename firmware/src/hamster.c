@@ -637,23 +637,22 @@ static void draw_home(void)                     /* the hamsters that changed, th
 {
     uint32_t i, p = disp_pat(), drawn = 0;
     for (i = 0; i < 8u; i++) {
-        uint32_t age = t_ham[i] ? fm1_ms - t_ham[i] : 9999u, st, sq = 0;
-        if (ham_sharp[i]) {                     /* a sharp: up on its toes, sparkling (it sings higher, brighter) */
-            if (age < 120u) sq = 68;
-            st = age < 135u ? 2u : i == sel_key ? 1u : 0u;
+        uint32_t age = t_ham[i] ? fm1_ms - t_ham[i] : 9999u, st, pose = HP_REST;
+        if (ham_sharp[i]) {                     /* a sharp: higher, brighter, its paws to its cheeks */
+            if (age < 130u) pose = HP_SHARP;
+            st = age < 130u ? 2u : i == sel_key ? 1u : 0u;
         } else if (thall) {                     /* the page's hard press: flat, then nearly, then up */
-            if (age < 45u) sq = 46;
-            else if (age < 90u) sq = 49;
-            else if (age < 135u) sq = 0;
+            if (age < 45u) pose = HP_FLAT;
+            else if (age < 90u) pose = HP_SING;
             st = age < 135u ? 2u : i == sel_key ? 1u : 0u;
-        } else {                                /* a note: it ducks */
-            if (age < 60u) sq = 62;
+        } else {                                /* a note: it ducks, its mouth open */
+            if (age < 110u) pose = HP_SING;
             st = age < 120u ? 2u : i == sel_key ? 1u : 0u;
         }
         if (age >= 135u) t_ham[i] = 0;
-        if ((rd_hams >> i & 1u) || ham_shown[i] != (st | sq << 4)) {
-            ham_shown[i] = st | sq << 4;
-            draw_ham(i, st, sq);
+        if ((rd_hams >> i & 1u) || ham_shown[i] != (st | pose << 4)) {
+            ham_shown[i] = st | pose << 4;
+            draw_ham(i, st, pose);
             drawn = 1;
         }
     }

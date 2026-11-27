@@ -276,9 +276,10 @@ static void draw_logo(uint32_t core, uint32_t dance)
 }
 
 /* ---- a hamster on the stage: its place 60 x 60, four a row, no frame, no letter. state: 0 at rest, 1 chosen (its
- * shadow warm), 2 singing (its shadow pink). squash: 0 as it is; else its height in 64ths, its feet where they are:
- * under 64 it ducks (a note; in THALL flat, as the page does it), over 64 it stretches up (a sharp: it sings higher,
- * brighter, and it sparkles) */
+ * shadow warm), 2 singing (its shadow pink). pose (firmware/gen/ham_art.h, drawn in its own pixels: every outline two
+ * screen pixels): HP_REST; HP_SING, a note (its mouth open, a row lower: it ducks); HP_SHARP, a sharp, sung higher and
+ * brighter (its brows up, its mouth wide, its paws to its cheeks, lifted a row, stars in its corners); HP_FLAT, THALL's
+ * hard press (three rows lower, as the page squashes it) */
 static const char *const NOTE_NAME[8] = {"C", "D", "E", "F", "G", "A", "B", "C"};
 static void fb_shadow(int32_t cx, int32_t y, int32_t w, uint16_t c)   /* an oval, 6 high: three rows of two */
 {
@@ -291,34 +292,30 @@ static void fb_sparkle(int32_t x, int32_t y, uint16_t c)   /* a little star, in 
     fb_rect(x + 2, y, 2, 6, c);
     fb_rect(x, y + 2, 6, 2, c);
 }
-static void draw_ham(uint32_t i, uint32_t state, uint32_t squash)
+static void draw_ham(uint32_t i, uint32_t state, uint32_t pose)
 {
-    int32_t cx = (int32_t)(i & 3u) * 60, cy = Y_HAM + (int32_t)(i >> 2) * HAM_ROW_H, x, y, hh, top;
-    const uint8_t *sp = HAM_SPR[i];
-    uint32_t up = squash > 64u;
+    int32_t cx = (int32_t)(i & 3u) * 60, cy = Y_HAM + (int32_t)(i >> 2) * HAM_ROW_H, x, y;
+    int32_t top = cy + 3 - (pose == HP_SHARP ? 2 : 0);
+    const uint8_t *sp = HAM_SPR[i][pose & 3u];
     fb_rect(cx, cy, 60, HAM_ROW_H, scr_dark ? C_STAGE_D : C_STAGE);
-    fb_shadow(cx + 30, cy + 54, up ? 34 : 44, state == 2u ? (scr_dark ? C_PINK2 : C_SPOT_SING) :
+    if (pose == HP_SHARP) {                     /* (in its place's top corners: clear of it) */
+        fb_sparkle(cx, cy, C_YELLOW);
+        fb_sparkle(cx + 54, cy, C_YELLOW);
+    }
+    fb_shadow(cx + 30, cy + 54, pose == HP_SHARP ? 36 : 44, state == 2u ? (scr_dark ? C_PINK2 : C_SPOT_SING) :
               state == 1u ? (scr_dark ? C_BLUE3 : C_SPOT) : (scr_dark ? C_SHADOW_D : C_SHADOW));
-    /* the hamster, 2 x 2 a pixel, its feet on its shadow (rows 3 .. 56 of its place; a stretch takes the air above) */
-    hh = squash ? 2 * (int32_t)HAM_H * (int32_t)squash / 64 : 2 * (int32_t)HAM_H;
-    if (hh > 2 * (int32_t)HAM_H + 3) hh = 2 * (int32_t)HAM_H + 3;
-    top = cy + 3 + 2 * (int32_t)HAM_H - hh + (squash && !up ? (squash < 50u ? 2 : 1) : 0);
-    for (y = 0; y < hh; y++) {
-        int32_t sy = y * (int32_t)HAM_H / hh;
+    for (y = 0; y < (int32_t)HAM_H; y++)        /* 2 x 2 a pixel, its feet on its shadow */
         for (x = 0; x < (int32_t)HAM_W; x++) {
-            uint8_t v = sp[sy * (int32_t)HAM_W + x];
+            uint8_t v = sp[y * (int32_t)HAM_W + x];
             if (v != 255u) {
-                fb_px(cx + 4 + 2 * x, top + y, HAM_PAL[v]);
-                fb_px(cx + 5 + 2 * x, top + y, HAM_PAL[v]);
+                uint16_t c = HAM_PAL[v];
+                int32_t px = cx + 4 + 2 * x, py = top + 2 * y;
+                fb_px(px, py, c);
+                fb_px(px + 1, py, c);
+                fb_px(px, py + 1, c);
+                fb_px(px + 1, py + 1, c);
             }
         }
-    }
-    if (up) {                                   /* a sharp: two stars by its head */
-        fb_sparkle(cx + 1, cy + 10, C_YELLOW);
-        fb_sparkle(cx + 53, cy + 6, C_YELLOW);
-        fb_rect(cx + 6, cy + 2, 2, 2, C_WHITE2);
-        fb_rect(cx + 50, cy + 16, 2, 2, C_WHITE2);
-    }
     fb_mark(cy, HAM_ROW_H);
 }
 

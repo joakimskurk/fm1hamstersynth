@@ -244,7 +244,8 @@ def carr(name, typ, vals, per=24, fmt="{}"):
 
 
 def build():
-    hpal, hams = indexed(ham_sprites.hamsters())
+    poses = ham_sprites.hamster_poses()
+    hpal, hams = indexed([g for ps in poses for g in ps])
     dpal, frames = indexed(ham_sprites.drummer())
     o = ["/* SPDX-License-Identifier: GPL-3.0-only */",
          "/* HamsterSynth's pictures. Made by tools/gen_ham_art.py of tools/ham_sprites.py: do not edit. */",
@@ -252,9 +253,10 @@ def build():
     o.append(f"#define HAM_W {ham_sprites.W}u                               /* a hamster, its pixels (2 x 2 on the screen) */")
     o.append(f"#define HAM_H {ham_sprites.H}u")
     o.append(carr("HAM_PAL", "uint16_t", [rgb565(*c) for c in hpal], 9, "0x{:04X}"))
-    o.append("static const uint8_t HAM_SPR[8][HAM_W * HAM_H] = {       /* 255: clear */")
-    for px in hams:
-        o.append("    {" + ",".join(str(v) for v in px) + "},")
+    o.append("enum { HP_REST, HP_SING, HP_SHARP, HP_FLAT };   /* its poses (ham_sprites.POSES), its feet on the last row */")
+    o.append("static const uint8_t HAM_SPR[8][4][HAM_W * HAM_H] = {       /* 255: clear */")
+    for i in range(len(poses)):
+        o.append("    {" + ",\n     ".join("{" + ",".join(str(v) for v in hams[4 * i + j]) + "}" for j in range(4)) + "},")
     o.append("};")
     o.append(carr("HAM_TINT", "uint16_t", [rgb565(*ham_sprites.FUR[k["fur"]][1]) for k in ham_sprites.KINDS], 8, "0x{:04X}")
              .replace("] = {", "] = {                /* each hamster's fur: its steps' stripe */", 1))

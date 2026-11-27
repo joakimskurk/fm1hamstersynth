@@ -127,8 +127,10 @@ venstre hjørne. Hver figurpiksel er 2×2 skjermpiksler, som logoen og teksten.
 - **To fonter:** store bokstaver for det viktigste (tonene, tempoet, titlene), en liten pikselfont (med ÆØÅ) for det
   som sies ved siden av: status, hint, merkelapper og hjelp.
 - **Hamsterne** sitter på et dust salviegrønt gulv, hver med sin skygge, uten rammer og uten bokstaver (tonene står i
-  stegene). Den valgte har varm skygge, den som synger rosa. En tone: den dukker. En halvtone: den strekker seg opp og
-  glitrer. I THALL er gulvet mørkt og de klemmes flate.
+  stegene). Den valgte har varm skygge, den som synger rosa. Hver hamster har fire positurer, tegnet piksel for piksel
+  (ingen skalering, så omrisset er alltid like tykt): i ro; en tone, munnen åpen og en piksel lavere; en halvtone,
+  brynene opp, munnen vid og potene mot kinnene, løftet en piksel med stjerner i hjørnene; THALL, klemt flat. I THALL
+  er gulvet mørkt.
 - **Stegene** står i slag på fire, som fliser i fargen til hamsteren som synger dem: tonen stor, ♯ og oktavpil ved
   siden av, effektene på foten (glide blå, arpeggio gul eller oransje, aksent rosa, ratchet som streker). Grønn fot: egen
   lyd. En pause er en prikk. Markøren er gul, steget som spilles hvitt.

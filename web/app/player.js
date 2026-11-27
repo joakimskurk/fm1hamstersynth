@@ -8,6 +8,13 @@ if (P) {
   const audio = $('#d-audio'), stage = $('#d-stage'), pp = $('#d-pp'), track = $('#d-track'), fill = $('#d-fill');
   const runner = $('#d-runner'), time = $('#d-time'), partEl = $('#d-part'), partsEl = $('#d-parts'), drummer = $('#d-drummer');
   const hams = [...P.querySelectorAll('.hm')];
+  const band = P.querySelector('.band');
+  const fit = () => {                             // the hamsters a whole number of times their pixels: 1, 2 or 3 x
+    const w = hams[0] ? hams[0].getBoundingClientRect().width : 78;
+    band.style.setProperty('--n', String(Math.max(1, Math.min(3, Math.floor(w / 26)))));
+  };
+  fit();
+  window.addEventListener('resize', fit);
   let tl = null, last = -1, ih = 0, id = 0, playing = false, drumT = 0, beat = 0;
 
   const fmt = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
