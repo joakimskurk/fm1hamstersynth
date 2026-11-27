@@ -136,12 +136,16 @@ MOUTH_HIGH3 = [".OOOO.", "OMTTMO", ".OOOO."]          # (over what it holds: a r
 
 def face(g, k, pose="rest"):
     """the eyes, the nose, the mouth, the cheeks, the paws, the feet; and what it holds or wears. pose: "rest", "sing"
-    (its mouth open), "sharp" (singing higher: its brows up, its mouth wide, its paws to its cheeks)"""
+    (its mouth open), "sharp" (singing higher: its eyes squeezed shut, > <, its mouth wide; its paws where they are,
+    for some hold their food)"""
     held = k.get("seed") or k.get("cheese")
     lo = 1 if held and pose != "rest" else 0    # (what it holds a row lower: its mouth open over it)
     eye = ["WE", "EE", "EE"]
     shut = [".OO.", "O..O"]                     # an eye shut, smiling
-    if k.get("happy"):
+    if pose == "sharp":                         # a high note: both eyes squeezed shut, > <
+        stamp(g, ["OO.", "..O", "OO."], 5, 9, {"O": "O"})
+        stamp(g, [".OO", "O..", ".OO"], 18, 9, {"O": "O"})
+    elif k.get("happy"):
         stamp(g, shut, 5, 10, {"O": "O"})
         stamp(g, shut, 17, 10, {"O": "O"})
     else:
@@ -150,10 +154,6 @@ def face(g, k, pose="rest"):
             stamp(g, shut, 17, 10, {"O": "O"})
         else:
             stamp(g, eye, 18, 9, {"E": "E", "W": "W"})
-    if pose == "sharp" and not k.get("shades"):   # its brows up
-        by = 8 if k.get("happy") else 7
-        stamp(g, ["OO"], 5, by, {"O": "O"})
-        stamp(g, ["OO"], 19, by, {"O": "O"})
     stamp(g, ["KK"], 3, 12, {"K": "K"})         # the cheeks
     stamp(g, ["KK"], 21, 12, {"K": "K"})
     stamp(g, ["NN"], 12, 12, {"N": "N"})        # the nose
@@ -192,9 +192,6 @@ def face(g, k, pose="rest"):
         y = 19 + lo
         stamp(g, ["pp", "qq"], 8 if k.get("cheese") else 9, y, {"p": "p", "q": "q"})
         stamp(g, ["pp", "qq"], 16 if k.get("cheese") else 15, y, {"p": "p", "q": "q"})
-    elif pose == "sharp":                       # its paws up to its cheeks, outlined (on any fur)
-        stamp(g, [".OO.", "OppO", "OqqO", ".OO."], 2, 11, {"O": "O", "p": "p", "q": "q"})
-        stamp(g, [".OO.", "OppO", "OqqO", ".OO."], 20, 11, {"O": "O", "p": "p", "q": "q"})
     else:                                       # its paws in front of it, soft
         stamp(g, ["pp", "qq"], 8, 17, {"p": "p", "q": "q"})
         stamp(g, ["pp", "qq"], 16, 17, {"p": "p", "q": "q"})
@@ -217,15 +214,22 @@ def colour(g, k):
     return [[None if c == "." else pal[c] for c in row] for row in g]
 
 
-def hamster(k, pose="rest"):
-    """a hamster in a pose, its pixels W x H, its feet on the last row: "rest"; "sing" (its mouth open, a row lower:
-    it ducks); "sharp" (singing higher, its mouth wide, its paws to its cheeks; the screen lifts it a row); "flat"
-    (THALL's hard press: three rows lower, as the page squashes it). The rows taken out are where it is all one
-    colour across, so every outline stays two screen pixels thick"""
-    g = face(shade(body(k)), k, "sing" if pose == "flat" else pose)
+FH = H + 1                                      # a pose's rows: one more, for its ears up
+
+
+def hamster(k, pose=None):
+    """a hamster at rest, its pixels W x H; or in a pose, W x FH, its feet on the last row: "rest"; "sing" (its mouth
+    open, a row lower: it ducks); "sharp" (singing higher: its ears up a row, its eyes squeezed, its mouth wide);
+    "flat" (THALL's hard press: three rows lower, as the page squashes it). Rows are taken out where it is one colour
+    across, and added where its ears are: every outline stays two screen pixels thick"""
+    g = face(shade(body(k)), k, "sing" if pose == "flat" else pose or "rest")
+    if pose is None:
+        return colour(g, k)
     drop = {"sing": {22}, "flat": {6, 21, 22}}.get(pose, set())
     g = [r for i, r in enumerate(g) if i not in drop]
-    g = [["."] * W for _ in range(H - len(g))] + g
+    if pose == "sharp":                         # its ears up: a row more of them
+        g = g[:1] + [g[1][:]] + g[1:]
+    g = [["."] * W for _ in range(FH - len(g))] + g
     return colour(g, k)
 
 

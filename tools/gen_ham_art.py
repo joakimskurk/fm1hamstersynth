@@ -252,9 +252,10 @@ def build():
          "#pragma once", "#include <stdint.h>", ""]
     o.append(f"#define HAM_W {ham_sprites.W}u                               /* a hamster, its pixels (2 x 2 on the screen) */")
     o.append(f"#define HAM_H {ham_sprites.H}u")
+    o.append(f"#define HAM_FH {ham_sprites.FH}u                              /* a pose: a row more (its ears up) */")
     o.append(carr("HAM_PAL", "uint16_t", [rgb565(*c) for c in hpal], 9, "0x{:04X}"))
     o.append("enum { HP_REST, HP_SING, HP_SHARP, HP_FLAT };   /* its poses (ham_sprites.POSES), its feet on the last row */")
-    o.append("static const uint8_t HAM_SPR[8][4][HAM_W * HAM_H] = {       /* 255: clear */")
+    o.append("static const uint8_t HAM_SPR[8][4][HAM_W * HAM_FH] = {      /* 255: clear */")
     for i in range(len(poses)):
         o.append("    {" + ",\n     ".join("{" + ",".join(str(v) for v in hams[4 * i + j]) + "}" for j in range(4)) + "},")
     o.append("};")

@@ -7,7 +7,7 @@ tour) and its own hamsters (tools/ham_sprites.py):
   docs/screens/ham-icon.png   the orange hamster, its mouth open (64 x 64): the page's icon
   web/og.png                  the link preview (1200 x 630): the logo and three screens on the page's paper
   docs/screens/ham-strip.png  the eight hamsters in their four poses side by side, their own pixels (32 x 26 x 28; rest,
-                              sing, sharp, flat; the sharp a row higher): the demo's player
+                              sing, sharp, flat): the demo's player
   docs/screens/ham-drummer.png  the drummer's four frames side by side (4 x 56 x 45): the demo's player
 
   python3 web/make_og.py
@@ -49,12 +49,7 @@ def main():
         d.rectangle([x - 4, 176, x + 360 + 3, 176 + 360 + 7], fill=INK)
         og.paste(Image.open(S / n).convert("RGB").resize((360, 360), Image.NEAREST), (x, 180))
     og.save(ROOT / "web" / "og.png")
-    blank = [None] * ham_sprites.W
-    cells = []
-    for ps in ham_sprites.hamster_poses():      # (a row more: the sharp lifted into it, the others under it)
-        for j, g in enumerate(ps):
-            cells.append(g + [blank] if ham_sprites.POSES[j] == "sharp" else [blank] + g)
-    strip(cells, S / "ham-strip.png")
+    strip([g for ps in ham_sprites.hamster_poses() for g in ps], S / "ham-strip.png")
     strip(ham_sprites.drummer(), S / "ham-drummer.png")
     print("ham-logo.png, ham-icon.png, web/og.png, ham-strip.png, ham-drummer.png")
 
