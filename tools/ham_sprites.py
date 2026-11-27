@@ -350,29 +350,26 @@ SPARK = (0xFF, 0xE0, 0x50)
 
 
 def kit_back():
-    """behind the hamster: the hi-hat's stand"""
+    """behind the hamster: the hi-hat's stand, on three legs"""
     g = blank(DW, DH)
-    line(g, 50, 25, 50, 41, GREY[1], INK)       # the hi-hat's stand, on three legs
-    line(g, 50, 39, 46, 43, GREY[2], INK)
-    line(g, 50, 39, 54, 43, GREY[2], INK)
-    line(g, 7, 33, 7, 41, GREY[2], INK)         # the snare's
-    line(g, 7, 39, 3, 43, GREY[2], INK)
-    line(g, 7, 39, 11, 43, GREY[2], INK)
+    line(g, 48, 22, 48, 40, GREY[1], INK)
+    line(g, 48, 38, 44, 43, GREY[2], INK)
+    line(g, 48, 38, 52, 43, GREY[2], INK)
     return g
 
 
 def kit_front(thump=False):
-    """in front of the hamster: the snare (left), the bass drum with its paw (thump: lit, the kick's), the hi-hat
-    (right): one for each of the Tromster's rows, the clap its paws"""
+    """in front of the hamster: two red drums (the snare on the left), the bass drum with its paw (thump: lit, the
+    kick's), the hi-hat (gold, over the right drum): the Tromster's rows, the clap its arms"""
     g = blank(DW, DH)
-    snare = outlined(lambda x, y: (None if (y == 0 and (x == 0 or x == 12)) else
-                                   (0xFF, 0xF8, 0xEE) if y < 2 else GREY[0] if x < 3 else GREY[2] if x > 9 else GREY[1]),
-                     13, 7)
-    for x in (2, 5, 8, 11):                      # its lugs
-        snare[4][x] = INK
-    for x in range(1, 12):                       # its rims
-        snare[2][x] = GREY[2]
-    layer(g, snare, 1, 26)
+    for x0 in (8, 37):                          # the snare (left) and a tom
+        tom = outlined(lambda x, y: (None if (y == 0 and (x == 0 or x == 9)) else
+                                     GREY[0] if y < 2 else RED[0] if x < 3 else RED[2] if x > 7 else RED[1]), 10, 9)
+        for y in (2, 7):
+            for x in range(1, 9):
+                tom[y][x] = GREY[1]
+        layer(g, tom, x0, 26)
+        line(g, x0 + 4 + (0 if x0 < 20 else 1), 35, x0 + 4 + (0 if x0 < 20 else 1), 41, GREY[2], INK)
     r = 10.5                                    # the bass drum: its rim, its cream head
     drum = outlined(lambda x, y: (None if (x - 10.5) ** 2 + (y - 10.5) ** 2 > r * r else
                                   GREY[1] if (x - 10.5) ** 2 + (y - 10.5) ** 2 > 8.6 ** 2 else
@@ -390,11 +387,11 @@ def kit_front(thump=False):
                  ".PPPPPP.",
                  "..PPPP.."], 7, 6, {"P": SPARK if thump else RED[1]})
     layer(g, drum, 17, 23)
-    for y0 in (22, 25):                         # the hi-hat: two cymbals, a little apart
-        cym = outlined(lambda x, y: (GOLD[0] if y < 1 else GOLD[1] if y < 2 else GOLD[2])
-                       if (x - 5.5) ** 2 / 36 + (y - 1) ** 2 / 2.3 <= 1 else None, 12, 3)
-        layer(g, cym, 44, y0)
-    layer(g, [[INK], [INK]], 50, 20)            # its nut
+    for y0 in (21, 18):                         # the hi-hat: two gold cymbals, the lower first
+        cym = outlined(lambda x, y: (GOLD[0] if y < 2 else GOLD[1] if y < 3 else GOLD[2])
+                       if (x - 7.5) ** 2 / 56 + (y - 2) ** 2 / 4.5 <= 1 else None, 16, 5)
+        layer(g, cym, 40, y0)
+    layer(g, [[INK], [INK]], 48, 17)            # its nut
     return g
 
 
@@ -453,10 +450,10 @@ def drummer():
     """the drummer's frames, one for each set of drums that hit at once: frame snare | hat << 1 | kick << 2 (0: ready,
     the sticks up a little), 8 + kick: the clap (both arms high, the sticks sparking). The snare: the left stick on the
     snare; the hat: the right one on the hi-hat; the kick: down it goes, the bass drum's paw lit"""
-    READY_L = ((18, 20), (14, 21), (12, 18), (7, 12))
-    SNARE_L = ((18, 20), (14, 22), (12, 22), (7, 26))
-    READY_R = ((37, 20), (40, 22), (42, 18), (47, 12))
-    HAT_R = ((37, 20), (40, 21), (41, 19), (45, 22))
+    READY_L = ((18, 20), (15, 16), (12, 12), (7, 6))
+    SNARE_L = ((18, 20), (12, 21), (14, 23), (11, 26))
+    READY_R = ((37, 20), (40, 16), (43, 12), (48, 6))
+    HAT_R = ((37, 20), (38, 17), (40, 15), (44, 18))
     CLAP_L = ((18, 20), (13, 16), (13, 11), (9, 3))
     CLAP_R = ((37, 20), (42, 16), (42, 11), (46, 3))
     frames = []
@@ -475,9 +472,9 @@ def drummer():
         arm(g, *(CLAP_L if clap else SNARE_L if snare else READY_L), body)
         arm(g, *(CLAP_R if clap else HAT_R if hat else READY_R), body)
         if snare:                               # where a stick meets: a flash
-            sparks(g, 6, 25, -1)
+            sparks(g, 10, 25, -1)
         if hat:
-            sparks(g, 46, 21, 1)
+            sparks(g, 45, 17, 1)
         if clap:                                # (both high: the sticks spark)
             sparks(g, 8, 2, -1)
             sparks(g, 47, 2, 1)
