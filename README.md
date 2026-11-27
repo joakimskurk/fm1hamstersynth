@@ -59,7 +59,7 @@ Verktøykjeden (JieLi) og SDK-en: [docs/DINGHY_README.md](docs/DINGHY_README.md)
 | | |
 |---|---|
 | **Hvite tangenter** | Hamsterne. C4–C5 er de åtte; F3–B3 er de samme en oktav ned, D5–G5 en oktav opp. |
-| **Svarte tangenter** | C#4 D#4 F#4 G#4: kick, snare, hat, clap for hånd. |
+| **Svarte tangenter** | Halvtoner: hamsteren under tangenten, en halvtone opp (C♯, D♯, F♯, G♯, A♯). Den synger lysere, står på tå og glitrer. Tas opp som de hvite. |
 | **PLAY** | Spill / stopp (sekvensen, eller songen når SONG er på). |
 | **REC** | Stegopptak: hamsteren lagres i steget og går videre. **SEL** legger inn pause. Mens det spilles (sekvens eller song): tonen lagres i steget du hører den i, det nærmeste, runde etter runde. |
 | **EDIT** | Rediger: en tangent bytter tonen uten å gå videre (når den står; mens den spiller tar tangentene opp, som REC). **SELECT** velger steg. |
@@ -88,15 +88,17 @@ også ut og inn som MIDI CC: 74 (LYS), 72 (LENGDE), 77 (PIP) og 91 (ROM).
 **SEL** sletter steget, **SAVE** kopierer det til neste, **LFO** lager en tilfeldig sekvens.
 
 **På Tromster-siden:** F3 G3 A3 B3 velger kick, snare, hat, clap; C4–C5 setter de åtte stegene (lysene viser dem);
+de svarte C♯4 D♯4 F♯4 G♯4 spiller kick, snare, hat og clap for hånd;
 KNOTT 1–4 velger lyd 1–4 for hver tromme (1–3 er sidens, 4 er hamstersettet: kinnpop, frøknas, snus og pip); hold SEL
 sletter raden.
 
 **På song-siden:** de åtte hamstertangentene C4–C5 skriver A–H ved markøren, SELECT flytter den, PRESETS bytter bokstaven, SEL sletter.
 
-**Stegene på skjermen:** tonen, piler for oktav, og små merker nederst: blå = glide, gul = arp (bred = +12),
-rosa = accent, oransje prikker = ratchet.
+**Stegene på skjermen:** en flis i fargen til hamsteren som synger, med tonen (♯ for halvtone) og pil for oktav;
+på foten små merker: blå = glide, gul = arp (oransje = +12), rosa = aksent, streker = ratchet. Grønn fot: steget har
+sin egen lyd (knottene, tatt opp).
 
-**Lys:** de åtte hamstertangentene gløder, den som synger lyser. PLAY blunker på slaget; REC, EDIT, SEQ (trommer på),
+**Lys:** de åtte hamstertangentene gløder, den som synger lyser (en halvtone: dens svarte tangent). PLAY blunker på slaget; REC, EDIT, SEQ (trommer på),
 FX (THALL) og GLO (SONG) lyser når de er på.
 
 ## Valg som er tatt for FM-1
@@ -109,7 +111,7 @@ FX (THALL) og GLO (SONG) lyser når de er på.
   delinger.
 - **Sekvensbytte mens det spiller** skjer ved neste runde i stedet for å stoppe.
 - **WAV-eksport** er USB-lyden: FM-1 dukker opp som lydinngang (44,1 / 48 kHz), ta opp det den spiller.
-- **Nytt:** trommer for hånd på svarte tangenter, swing, egne nivåer for hamstere og Tromster, MIDI inn (noter,
+- **Nytt:** halvtoner på de svarte tangentene, trommer for hånd på Tromster-siden, lyd-knottene, swing, egne nivåer for hamstere og Tromster, MIDI inn (noter,
   klokke, start / stopp) og ut (hamsterne på valgt kanal, trommene på kanal 10), alt lagres i flash.
 
 ## Figurene
@@ -124,15 +126,18 @@ venstre hjørne. Hver figurpiksel er 2×2 skjermpiksler, som logoen og teksten.
 
 - **To fonter:** store bokstaver for det viktigste (tonene, tempoet, titlene), en liten pikselfont (med ÆØÅ) for det
   som sies ved siden av: status, hint, merkelapper og hjelp.
-- **Stegene** står i slag på fire. Hvert har en stripe i fargen til hamsteren som synger det, delt i to, tre eller
-  fire for ratchet. Oktaven vises som pil (og tall), effektene som fargeprikker: glide blå, arpeggio gul (+12 oransje),
-  aksent rosa. Markøren er gul, steget som spilles er lyst med rosa ramme.
+- **Hamsterne** sitter på et dust salviegrønt gulv, hver med sin skygge, uten rammer og uten bokstaver (tonene står i
+  stegene). Den valgte har varm skygge, den som synger rosa. En tone: den dukker. En halvtone: den strekker seg opp og
+  glitrer. I THALL er gulvet mørkt og de klemmes flate.
+- **Stegene** står i slag på fire, som fliser i fargen til hamsteren som synger dem: tonen stor, ♯ og oktavpil ved
+  siden av, effektene på foten (glide blå, arpeggio gul eller oransje, aksent rosa, ratchet som streker). Grønn fot: egen
+  lyd. En pause er en prikk. Markøren er gul, steget som spilles hvitt.
 - **Bunnen:** sekvensene A–H i hver sin farge (de samme i songen): den som vises fylt, de med noter i farge, de tomme
   dempet; tempoet og hva den gjør. Under
   står det som akkurat skjedde i et par sekunder, ellers et hint for det du holder på med. I REDIGER sier den steget i
   ord: «A9 · F↓2 · GLIDE · ARP +7 · ×3».
 - **Skiltet** er en snakkeboble fra en av hamsterne (mørk i THALL). Den går bort så snart du gjør noe.
-- **Hjelpen** (hold HOME): tre sider, knappene tegnet som taster.
+- **Hjelpen** (hold HOME): fire sider, knappene tegnet som taster.
 
 ## Hamsterstemmen
 

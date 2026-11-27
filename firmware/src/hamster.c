@@ -6,7 +6,9 @@
  *
  * The page is played with a finger on a screen. Here:
  *   white keys   the hamsters: C4..C5 are the eight; F3..B3 the same hamsters an octave down, D5..G5 an octave up
- *   black keys   C#4 D#4 F#4 G#4: kick, snare, hat, clap, by hand
+ *   black keys   sharps: the hamster under it a semitone up (C#, D#, F#, G#, A#), recorded as the white ones; it
+ *                sings it brighter (up on its toes, sparkling). On the Tromster's page C#4 D#4 F#4 G#4 are the drums by
+ *                hand: kick, snare, hat, clap
  *   PLAY         play / stop (the pattern, or the song with SONG on)
  *   REC          step recording: a hamster is written to the step and the step moves on; SEL writes a rest.
  *                While it plays (a pattern or the song): into the step it is heard in (the nearest), over and over
@@ -39,6 +41,8 @@
 #include "platform.c"
 #include "ham_engine.h"
 #include "ham_draw.h"
+static const char *const NOTE_SH[8] = {"C♯", "D♯", "E", "F♯", "G♯", "A♯", "B", "C♯"};
+static const char *note_name(uint32_t key, uint32_t sharp) { return sharp ? NOTE_SH[key & 7u] : NOTE_NAME[key & 7u]; }   /* (a sharp: its name) */
 
 #ifndef DINGHY_HOST
 static volatile uint32_t au_load, au_worst;     /* the last render and the longest, in crystal ticks (139320 a block) */
@@ -80,7 +84,7 @@ static uint32_t t_ham[8], t_logo, logo_dance, t_sign, sign_on, sign_who = 4, sig
 static char status[64], sign1[40], sign2[40];
 /* what has to be drawn again */
 static uint32_t rd_all = 1, rd_logo, rd_hams, rd_steps, rd_bot, rd_page;
-static uint32_t ham_shown[8];
+static uint32_t ham_shown[8], ham_sharp[8];     /* ham_sharp: its last note a sharp (it sings it brighter) */
 /* the sound knobs: turned while REC plays, recorded (the value, when, the last turn); what MIDI was last told */
 static uint32_t snd_rv[NSND], snd_rt[NSND], snd_rlast, cc_sent[NSND] = {32, 16, 16, 16};
 /* the drummer */
@@ -106,7 +110,7 @@ static void sb_step(uint32_t i) { sb_c((char)('A' + active)); sb_u(i + 1u); }   
 static void sb_note(uint32_t s, int words)      /* "C↓2~↕7!×3", or in words */
 {
     int32_t o = ST_OCT(s);
-    sb_s(NOTE_NAME[ST_KEY(s)]);
+    sb_s(note_name(ST_KEY(s), ST_SHARP(s)));
     if (o) { sb_s(o < 0 ? "↓" : "↑"); if (o < -1 || o > 1) sb_u((uint32_t)(o < 0 ? -o : o)); }
     if (words) sb_c(' ');
     if (ST_GLIDE(s)) sb_c('~');
@@ -254,7 +258,7 @@ static void store_load(void)
     for (p = 0; p < NPAT; p++) {
         for (i = 0; i < 16u; i++) {
             uint32_t s = sv.pat[p][i];
-            hq.pat[p][i] = (uint16_t)((s & ST_ON) && ((s >> 3) & 7u) <= 4u ? s & 0x8FFFu : 0u);
+            hq.pat[p][i] = (uint16_t)((s & ST_ON) && ((s >> 3) & 7u) <= 4u ? s & 0x9FFFu : 0u);
         }
         for (i = 0; i < 4u; i++) {
             hq.drum[p][i] = sv.drum[p][i];
@@ -374,11 +378,14 @@ static void play(void)
 static const int8_t KEY_HAM[27] = {3, -1, 4, -1, 5, -1, 6, 0, -1, 1, -1, 2, 3, -1, 4, -1, 5, -1, 6, 7, -1, 1, -1, 2, 3, -1, 4};
 static const int8_t KEY_OCT[27] = {-1, 0, -1, 0, -1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1};
 static const uint8_t HAM_KEYLED[8] = {7, 9, 11, 12, 14, 16, 18, 19};   /* the eight's own keys: C4..C5 */
+/* a black key: the hamster under it, a semitone up (F#3 G#3 A#3, C#4 D#4 F#4 G#4 A#4, C#5 D#5 F#5) */
+static const int8_t BLK_HAM[27] = {-1, 3, -1, 4, -1, 5, -1, -1, 0, -1, 1, -1, -1, 3, -1, 4, -1, 5, -1, -1, 7, -1, 1, -1, -1, 3, -1};
+static const int8_t BLK_OCT[27] = {0, -1, 0, -1, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0};
 static const char *const DRUM_NAME[4] = {"KICK", "SNARE", "HAT", "CLAP"};
 
-static void sing(uint32_t key, int32_t oct, uint32_t vel)   /* a hamster by hand (vel 0: the page's own) */
+static void sing(uint32_t key, int32_t oct, uint32_t sharp, uint32_t vel)   /* a hamster by hand (vel 0: the page's own) */
 {
-    uint32_t midi = (uint32_t)((int32_t)HAM_MIDI[key] + 12 * oct);
+    uint32_t midi = (uint32_t)((int32_t)HAM_MIDI[key] + 12 * oct + (int32_t)sharp);
     heng_cmd(HCMD(HC_NOTE, midi | key << 7 | vel << 10));
 }
 static void preview(uint32_t step)
@@ -432,38 +439,39 @@ static uint32_t step_has_snd(uint32_t p, uint32_t step)
     return (l[0] | l[1] | l[2] | l[3]) != 0u;
 }
 
-static void press(uint32_t key, int32_t oct, uint32_t vel)
+static void press(uint32_t key, int32_t oct, uint32_t sharp, uint32_t vel)   /* sharp: a black key */
 {
+    uint32_t n = ST_MAKE(key, oct < -3 ? -3 : oct > 1 ? 1 : oct) | (sharp ? ST_SHARP_BIT : 0u);
     oct = oct < -3 ? -3 : oct > 1 ? 1 : oct;
     sel_key = key;
     if (page == PG_HOME && edit_on && !playing) {   /* the editor, stopped: the step's note changes, its effects stay */
         uint32_t s = hq.pat[active][cur_step];
         undo_push();
-        hq.pat[active][cur_step] = (uint16_t)((s & ST_ON) ? (s & ~0x3Fu) | key | (uint32_t)(oct + 3) << 3 : ST_MAKE(key, oct));
+        hq.pat[active][cur_step] = (uint16_t)((s & ST_ON) ? (s & ~(0x3Fu | ST_SHARP_BIT)) | (n & (0x3Fu | ST_SHARP_BIT)) : n);
         preview(cur_step);
-        SAY_BEGIN(); sb_step(cur_step); sb_s(" · TONE → "); sb_s(NOTE_NAME[key]); SAY_END();
+        SAY_BEGIN(); sb_step(cur_step); sb_s(" · TONE → "); sb_s(note_name(key, sharp)); SAY_END();
         rd_steps |= 1u << cur_step;
         touch();
         return;
     }
-    sing(key, oct, vel);
+    sing(key, oct, sharp, vel);
     if (page == PG_HOME && (rec_on || edit_on) && playing) {   /* recorded while it plays (REC or EDIT): where it was heard */
         uint32_t p, step = live_step(&p);
         undo_push_p(p);
-        hq.pat[p][step] = ST_MAKE(key, oct);
-        SAY_BEGIN(); sb_c((char)('A' + p)); sb_u(step + 1u); sb_s(" · "); sb_s(NOTE_NAME[key]); sb_s(" ●"); SAY_END();
+        hq.pat[p][step] = (uint16_t)n;
+        SAY_BEGIN(); sb_c((char)('A' + p)); sb_u(step + 1u); sb_s(" · "); sb_s(note_name(key, sharp)); sb_s(" ●"); SAY_END();
         rd_steps |= 1u << step;
         touch();
     } else if (page == PG_HOME && rec_on) {     /* step recording: written, and on to the next */
         uint32_t step = cur_step;
         undo_push();
-        hq.pat[active][step] = ST_MAKE(key, oct);
+        hq.pat[active][step] = (uint16_t)n;
         cur_step = (cur_step + 1u) & 15u;
-        SAY_BEGIN(); sb_step(step); sb_s(" · "); sb_s(NOTE_NAME[key]); sb_s(" LAGRET"); SAY_END();
+        SAY_BEGIN(); sb_step(step); sb_s(" · "); sb_s(note_name(key, sharp)); sb_s(" LAGRET"); SAY_END();
         rd_steps |= 1u << step | 1u << cur_step;
         touch();
     } else if (page == PG_HOME) {
-        SAY_BEGIN(); sb_s("HAMSTER "); sb_u(key + 1u); sb_s(" · "); sb_s(NOTE_NAME[key]); SAY_END();
+        SAY_BEGIN(); sb_s("HAMSTER "); sb_u(key + 1u); sb_s(" · "); sb_s(note_name(key, sharp)); SAY_END();
     }
 }
 
@@ -520,7 +528,7 @@ static void set_thall(uint32_t on)
     } else {
         SAY_BEGIN(); sb_s("HAMSTER MODE · "); sb_u(bpm); SAY_END();
     }
-    rd_logo = rd_bot = 1;
+    rd_all = 1;                                 /* (the stage and the steps dark, or light again) */
     touch();
 }
 
@@ -535,7 +543,7 @@ static void sb_step_words(uint32_t step)
     if (!(st & ST_ON)) { sb_s(" · TOMT"); if (edit_on) sb_s(" · VELG TONE"); return; }
     {
         int32_t o = ST_OCT(st);
-        sb_s(" · "); sb_s(NOTE_NAME[ST_KEY(st)]);
+        sb_s(" · "); sb_s(note_name(ST_KEY(st), ST_SHARP(st)));
         if (o) { sb_s(o < 0 ? "↓" : "↑"); if (o < -1 || o > 1) sb_u((uint32_t)(o < 0 ? -o : o)); }
         if (ST_GLIDE(st)) sb_s(" · GLIDE");
         if (ST_ARP(st)) sb_s(ST_ARP(st) == 1u ? " · ARP +7" : " · ARP +12");
@@ -630,12 +638,15 @@ static void draw_home(void)                     /* the hamsters that changed, th
     uint32_t i, p = disp_pat(), drawn = 0;
     for (i = 0; i < 8u; i++) {
         uint32_t age = t_ham[i] ? fm1_ms - t_ham[i] : 9999u, st, sq = 0;
-        if (thall) {                            /* the page's hard press: flat, then nearly, then up */
+        if (ham_sharp[i]) {                     /* a sharp: up on its toes, sparkling (it sings higher, brighter) */
+            if (age < 120u) sq = 68;
+            st = age < 135u ? 2u : i == sel_key ? 1u : 0u;
+        } else if (thall) {                     /* the page's hard press: flat, then nearly, then up */
             if (age < 45u) sq = 46;
             else if (age < 90u) sq = 49;
             else if (age < 135u) sq = 0;
             st = age < 135u ? 2u : i == sel_key ? 1u : 0u;
-        } else {
+        } else {                                /* a note: it ducks */
             if (age < 60u) sq = 62;
             st = age < 120u ? 2u : i == sel_key ? 1u : 0u;
         }
@@ -674,9 +685,10 @@ static void draw_trom(void)
     sf_text_mid(126, 17, 54, t, C_INK, 2);
     fb_pill(148, 52, 30, 14, drums_on ? C_GREEN : C_PINK2);
     sf_text_mid(148, 30, 54, drums_on ? "PÅ" : "AV", drums_on ? C_INK : C_WHITE2, 2);
-    legend(126, 76, "F3–B3", "TROMME");
-    legend(126, 92, "C4–C5", "STEG");
-    legend(126, 108, "KNOTT", "LYD 1–4");
+    legend(126, 72, "F3–B3", "TROMME");
+    legend(126, 86, "C4–C5", "STEG");
+    legend(126, 100, "KNOTT", "LYD 1–4");
+    legend(126, 114, "SVARTE", "SLÅ");             /* (the drums by hand) */
     for (r = 0; r < 4u; r++) {
         int32_t y = 131 + (int32_t)r * 19, k;
         uint32_t v = hq.dvoice[p][r], sel = r == trom_row;
@@ -732,7 +744,7 @@ static void draw_song(void)
 /* help: four pages, a key and what it does on each line */
 static const char *const HELP_TITLE[4] = {"SPILLE", "REDIGERE", "MER", "LYD"};
 static const char *const HELP[4][10][2] = {
-    {{"HVITE", "HAMSTERNE"}, {"SVARTE", "TROMMER"}, {"PLAY", "SPILL / STOPP"}, {"REC", "TA OPP"},
+    {{"HVITE", "HAMSTERNE"}, {"SVARTE", "HALVTONER ♯"}, {"PLAY", "SPILL / STOPP"}, {"REC", "TA OPP"},
      {"SEL", "PAUSE I OPPTAK"}, {"SELECT", "VELG STEG"}, {"PRESETS", "SEKVENS A–H"}, {"ALGORITHM", "TEMPO"},
      {"OCT − +", "OKTAV"}, {"ENV", "ANGRE"}},
     {{"EDIT", "REDIGER STEG"}, {"TANGENT", "BYTT TONE"}, {"KNOTT 1", "GLIDE"}, {"KNOTT 2", "ARP +7 / +12"},
@@ -792,6 +804,7 @@ static void draw_set(void)
 static void draw(void)
 {
     static uint32_t page_shown = 99;
+    scr_dark = thall;
     if (rd_all || page != page_shown) {
         page_shown = page;
         rd_all = 0;
@@ -837,13 +850,15 @@ static void leds(void)
     } else if (page == PG_SONG) {             /* the eight hamsters' keys write A..H */
         for (k = 0; k < 8u; k++)
             glow |= 1u << HAM_KEYLED[k];
-    } else {                                    /* the eight glow; the one that sings is lit */
+    } else {                                    /* the eight glow; the one that sings is lit (a sharp: its black key) */
+        static const uint8_t BLKLED[8] = {8, 10, 0, 13, 15, 17, 0, 20};
         for (k = 0; k < 8u; k++) {
-            if (t_ham[k] && fm1_ms - t_ham[k] < 120u) lit |= 1u << HAM_KEYLED[k];
+            if (t_ham[k] && fm1_ms - t_ham[k] < 120u) lit |= 1u << (ham_sharp[k] && BLKLED[k] ? BLKLED[k] : HAM_KEYLED[k]);
             else glow |= 1u << HAM_KEYLED[k];
         }
     }
-    glow |= 1u << 8 | 1u << 10 | 1u << 13 | 1u << 15;   /* the drums' black keys */
+    if (page == PG_TROM)                        /* the drums by hand: its black keys */
+        glow |= 1u << 8 | 1u << 10 | 1u << 13 | 1u << 15;
     if (playing && ((play_step & 3u) || fm1_ms - t_logo >= 60u))
         btn |= 1u << BTN_PLAY;                  /* (it winks on the beat) */
     if (rec_on) btn |= 1u << BTN_REC;
@@ -933,8 +948,8 @@ static void midi_in(void)
             int32_t oct = (int32_t)d1 / 12 - 5;
             if (d1 < 24u || d1 > 96u)
                 continue;
-            if (PC_WHITE[pc] && (rec_on || edit_on) && page == PG_HOME && oct >= -3 && oct <= 1) {
-                press(key, oct, d2);            /* a white note: as the keys, recorded too */
+            if ((rec_on || edit_on) && page == PG_HOME && oct >= -3 && oct <= 1) {
+                press(key, oct, !PC_WHITE[pc], d2);   /* as the keys, recorded too (a black one: a sharp) */
             } else {
                 heng_cmd(HCMD(HC_NOTE, d1 | key << 7 | (uint32_t)d2 << 10));
                 sel_key = key;
@@ -1058,7 +1073,7 @@ static void buttons(void)
         hq.hvoice = hvoice;
         say(hvoice ? "HAMSTERSTEMME" : "SIDENS STEMME");
         if (!thall && !playing)
-            sing(sel_key, 0, 0);
+            sing(sel_key, 0, 0, 0);
         touch();
     }
     if (tap & (1u << BTN_ENV)) {
@@ -1373,9 +1388,14 @@ static void keys(void)
     for (k = 0; k < 27u; k++) {
         if (!(down >> k & 1u))
             continue;
-        if (k == 8u || k == 10u || k == 13u || k == 15u) {   /* the drums by hand */
+        if (page == PG_TROM && (k == 8u || k == 10u || k == 13u || k == 15u)) {   /* the drums by hand */
             uint32_t d = k == 8u ? DR_KICK : k == 10u ? DR_SNARE : k == 13u ? DR_HAT : DR_CLAP;
             drum_try(d, 1);
+            continue;
+        }
+        if (BLK_HAM[k] >= 0) {                  /* a black key: its hamster a semitone up */
+            if (page != PG_TROM && page != PG_SONG)
+                press((uint32_t)BLK_HAM[k], BLK_OCT[k] + kb_oct, 1, 0);
             continue;
         }
         if (KEY_HAM[k] < 0)
@@ -1404,7 +1424,7 @@ static void keys(void)
                 touch();
             }
         } else {
-            press((uint32_t)KEY_HAM[k], KEY_OCT[k] + kb_oct, 0);
+            press((uint32_t)KEY_HAM[k], KEY_OCT[k] + kb_oct, 0, 0);
         }
     }
 }
@@ -1447,9 +1467,11 @@ static void events(void)
         case HE_NOTE: {
             uint32_t key = a & 7u, midi = a >> 4 & 127u, vel = a >> 12 & 127u;
 #ifdef HAM_DEMO
-            printf("%6u ms  hamster %u\n", fm1_ms, key);   /* (the demo's player: who sings when) */
+            printf("%6u ms  hamster %u\n", fm1_ms, key | ((0x54Au >> (midi % 12u)) & 1u) << 3);   /* (the demo's player:
+                                                   who sings when; + 8: a sharp) */
 #endif
             t_ham[key] = fm1_ms ? fm1_ms : 1u;
+            ham_sharp[key] = (0x54Au >> (midi % 12u)) & 1u;   /* (a black key's pitch) */
             ham_shown[key] = ~0u;
             sel_key = key;
             midi_note_out(0x90u | (midi_ch ? midi_ch - 1u : 0u), midi, vel);

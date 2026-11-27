@@ -115,9 +115,9 @@
   .shots img { width: 100%; height: auto; border: 3px solid var(--ink); display: block; }
   /* the demo's player: the hamsters sing it */
   .player { background: var(--ink2); border: 3px solid var(--ink); padding: 14px; color: var(--cream2); }
-  .stage { position: relative; background: var(--cream); border: 3px solid var(--ink); padding: 34px 10px 6px; overflow: hidden;
+  .stage { position: relative; background: #b8cbc6; border: 3px solid var(--ink); padding: 34px 10px 6px; overflow: hidden;
            transition: background .25s; }
-  .stage.core { background: #050607; }
+  .stage.core { background: #2d3339; }
   .stage.core.bump { animation: thump .1s; }
   @keyframes thump { 50% { transform: translateX(2px); } }
   .now { position: absolute; top: 8px; left: 12px; font-size: 13px; font-weight: 700; letter-spacing: .1em;
@@ -134,14 +134,18 @@
   .hm[data-k="5"] i { background-position-x: 71.4286%; }
   .hm[data-k="6"] i { background-position-x: 85.7143%; }
   .hm[data-k="7"] i { background-position-x: 100.0000%; }
-  .hm b { display: block; margin-top: 4px; font-size: 14px; line-height: 1.5; background: #f1e7d2; color: var(--ink);
-          border: 2px solid var(--ink); transition: background .09s; }
+  .hm b { display: block; width: 78%; height: 9px; margin: -5px auto 0; border-radius: 50%; background: #a3b8b3;
+          transition: background .09s, transform .09s; }
   .hm.sing i { transform: translateY(-16%) scale(1.06, .94); }
-  .hm.sing b { background: var(--pink2); color: var(--cream2); }
-  .stage.core .hm b { background: var(--ink2); color: var(--cream2); border-color: #000; }
+  .hm.sing b { background: #f2a7a2; }
+  .hm.sharp i { transform: translateY(-22%) scale(.94, 1.1); filter: brightness(1.12); }
+  .hm.sharp b { background: #f2a7a2; transform: scaleX(.75); }
+  .hm.sharp::after { content: "✦"; position: absolute; right: 2%; top: -6%; color: var(--yellow); font-size: 16px;
+                     text-shadow: 0 0 2px var(--ink); }
+  .stage.core .hm b { background: #22272c; }
   .stage.core .hm.sing i { transform: scale(1.14, .6); }
-  .stage.core .hm.sing b { background: var(--pink2); }
-  .fly { position: absolute; left: 50%; top: 0; font-size: 18px; font-weight: 700; color: var(--pink2); pointer-events: none;
+  .stage.core .hm.sing b, .stage.core .hm.sharp b { background: var(--pink2); }
+  .fly { position: absolute; left: 50%; top: -30%; font-size: 18px; font-weight: 700; color: var(--pink2); pointer-events: none;
          animation: fly .9s ease-out forwards; }
   @keyframes fly { from { transform: translate(-50%, 0); opacity: 1; }
                    to { transform: translate(calc(-50% + var(--dx, 0px)), -56px) rotate(18deg); opacity: 0; } }
@@ -180,7 +184,7 @@
   footer p { margin: 0 0 8px; }
   @media (max-width: 760px) {
     .fm1 { grid-template-columns: 1fr; }
-    .band { gap: 3px; } .hm b { font-size: 11px; } .drummer { width: 112px; } .stage { padding-top: 30px; }
+    .band { gap: 3px; } .hm b { height: 6px; margin-top: -3px; } .drummer { width: 112px; } .stage { padding-top: 30px; }
     .pp { width: 58px; height: 58px; } .time { min-width: 0; font-size: 12px; } .deck { gap: 10px; }
     .shots { grid-template-columns: repeat(2, 1fr); }
     td:first-child { white-space: normal; }
@@ -244,7 +248,7 @@
       </div>
     </div>
     <p id="appstatus">Trykk Start.</p>
-    <p class="small"><kbd>A</kbd>–<kbd>K</kbd> hamstere · <kbd>W</kbd> <kbd>E</kbd> <kbd>T</kbd> <kbd>Y</kbd> trommer ·
+    <p class="small"><kbd>A</kbd>–<kbd>K</kbd> hamstere · <kbd>W</kbd> <kbd>E</kbd> <kbd>T</kbd> <kbd>Y</kbd> <kbd>U</kbd> halvtoner ·
       <kbd>mellomrom</kbd> play · knottene: dra eller rull</p>
   </div>
 
@@ -254,14 +258,14 @@
     <div class="stage" id="d-stage">
       <span class="now" id="d-part" aria-live="polite"></span>
       <div class="band">
-      <div class="hm" data-k="0"><i></i><b>C</b></div>
-      <div class="hm" data-k="1"><i></i><b>D</b></div>
-      <div class="hm" data-k="2"><i></i><b>E</b></div>
-      <div class="hm" data-k="3"><i></i><b>F</b></div>
-      <div class="hm" data-k="4"><i></i><b>G</b></div>
-      <div class="hm" data-k="5"><i></i><b>A</b></div>
-      <div class="hm" data-k="6"><i></i><b>B</b></div>
-      <div class="hm" data-k="7"><i></i><b>C</b></div>
+      <div class="hm" data-k="0"><i></i><b></b></div>
+      <div class="hm" data-k="1"><i></i><b></b></div>
+      <div class="hm" data-k="2"><i></i><b></b></div>
+      <div class="hm" data-k="3"><i></i><b></b></div>
+      <div class="hm" data-k="4"><i></i><b></b></div>
+      <div class="hm" data-k="5"><i></i><b></b></div>
+      <div class="hm" data-k="6"><i></i><b></b></div>
+      <div class="hm" data-k="7"><i></i><b></b></div>
       </div>
       <div class="kit"><div class="drummer" id="d-drummer" data-f="0"></div></div>
     </div>
@@ -295,7 +299,7 @@
   <h2 id="spill">Spill</h2>
   <table>
     <tr><td><span>Hvite tangenter</span></td><td>Hamsterne</td></tr>
-    <tr><td><span>Svarte tangenter</span></td><td>Trommer</td></tr>
+    <tr><td><span>Svarte tangenter</span></td><td>Halvtoner ♯ (på Tromster-siden: trommer)</td></tr>
     <tr><td><span>PLAY · REC</span></td><td>Spill · ta opp</td></tr>
     <tr><td><span>SEQ</span></td><td>Trommehamsteren</td></tr>
     <tr><td><span>FX</span></td><td>THALLHAMSTERGRINDCORE</td></tr>

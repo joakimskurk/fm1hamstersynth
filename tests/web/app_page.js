@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // The site's «Prøv i nettleseren» in Chromium (Playwright): Start loads the firmware into the audio thread, its screen
-// comes up (the logo's blue), a hamster pressed on the computer's keyboard (A: C4) lights its note on the screen, space
+// comes up (the logo's blue), a hamster pressed on the computer's keyboard (A: C4) sings (its shadow pink), space
 // (PLAY) starts the pattern (the state's bit 0), PLAY again stops it. The tempo knob turns by the wheel and by a drag
 // (the tempo on the screen changes). No page errors.
 //
@@ -32,9 +32,9 @@ server.listen(0, async () => {
   check('the firmware runs: its logo', near(await px(6, 6), [0x42, 0x6B, 0x7C]), JSON.stringify(await px(6, 6)));
   await p.keyboard.down('a');
   await p.waitForTimeout(60);
-  const label = await px(60, 2 * 92);
+  const shadow = await px(60, 2 * 82);
   await p.keyboard.up('a');
-  check('A on the keyboard: the C hamster sings (its note lit)', near(label, [0xD9, 0x5F, 0x67]), JSON.stringify(label));
+  check('A on the keyboard: the C hamster sings (its shadow pink)', near(shadow, [0xF2, 0xA7, 0xA2]), JSON.stringify(shadow));
   await p.keyboard.press(' ');
   await p.waitForTimeout(500);
   check('space: PLAY, it plays', ((await p.evaluate(() => window.__hamster)) & 1) === 1);

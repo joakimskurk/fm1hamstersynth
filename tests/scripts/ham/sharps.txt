@@ -1,0 +1,27 @@
+# Sharps: the black keys sing the hamster under them a semitone up: C#4 D#4 F#3 C#5 A#4 by hand. Then REC (from
+# step 8): C#4 into step 8, F#4 into step 9 by hand, and D#4 over MIDI into step 10; PLAY: the pattern with them.
+# Last, the Tromster's page: there C#4 is the kick by hand (channel 10, note 36), not a hamster
+300 keys 0x100
+360 keys 0
+500 keys 0x400
+560 keys 0
+700 keys 0x2
+760 keys 0
+900 keys 0x100000
+960 keys 0
+1100 keys 0x20000
+1160 keys 0
+1500 btn 13
+1600 keys 0x100
+1660 keys 0
+1800 keys 0x2000
+1860 keys 0
+2000 midi 0x90 63 100
+2050 midi 0x80 63 0
+2300 btn 13
+2500 btn 12
+6600 btn 12
+6800 btn 11
+7000 keys 0x100
+7060 keys 0
+7500 end

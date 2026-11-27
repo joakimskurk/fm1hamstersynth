@@ -29,18 +29,18 @@ if (P) {
     draw();
   }).catch(() => {});
 
-  function sing(k) {                              // the hamster hops, its note lit, a note flies off it
-    const h = hams[k & 7];
+  function sing(v) {                              // the hamster hops (a sharp: up on its toes, sparkling), a note flies
+    const h = hams[v & 7], cls = v & 8 ? 'sharp' : 'sing', k = v & 7;
     if (!h) return;
-    h.classList.remove('sing');
+    h.classList.remove('sing', 'sharp');
     void h.offsetWidth;
-    h.classList.add('sing');
+    h.classList.add(cls);
     clearTimeout(h._t);
-    h._t = setTimeout(() => h.classList.remove('sing'), 170);
+    h._t = setTimeout(() => h.classList.remove('sing', 'sharp'), cls === 'sharp' ? 240 : 170);
     if (h.querySelectorAll('.fly').length < 2) {
       const n = document.createElement('span');
       n.className = 'fly';
-      n.textContent = '♪♫♪♬'[(k + beat++) & 3];
+      n.textContent = v & 8 ? '♯' : '♪♫♪♬'[(k + beat++) & 3];
       n.style.setProperty('--dx', `${((k * 37 + beat * 13) % 30) - 15}px`);
       n.addEventListener('animationend', () => n.remove());
       h.appendChild(n);

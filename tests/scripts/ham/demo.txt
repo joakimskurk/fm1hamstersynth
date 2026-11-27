@@ -41,8 +41,10 @@
 22040 enc 2 2
 22220 enc 2 2
 22400 enc 2 2
-# 24.1 s  the build: E (its own sound: opening, squeakier, tighter), a snare roll by hand at its end
+# 24.1 s  the build: E (its own sound: opening, squeakier, tighter; G sharps), a snare roll by hand at its end (the
+# Tromster's page: there the black keys are the drums)
 #@ 24100 Opp
+27250 btn 11
 27380 keys 0x400
 27440 keys 0
 27500 keys 0x400
@@ -51,6 +53,7 @@
 27680 keys 0
 27730 keys 0x500
 27790 keys 0
+27850 btn 8
 # 27.9 s  the hook: F G F G; ROM up. The second time: LENGDE and PIP up, and over it by hand E5, F5, E5, D5
 #@ 27850 Refreng
 27900 enc 5 6

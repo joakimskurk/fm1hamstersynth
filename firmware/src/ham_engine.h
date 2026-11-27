@@ -50,7 +50,10 @@
 #define ST_ACCENT(s) (((s) >> 7) & 1u)
 #define ST_ARP(s) (((s) >> 8) & 3u)                          /* 0 off, 1 a fifth up, 2 an octave up */
 #define ST_RATCHET(s) ((((s) >> 10) & 3u) + 1u)
+#define ST_SHARP(s) (((s) >> 12) & 1u)                       /* a semitone up: the black key above (C# D# F# G# A#) */
+#define ST_SHARP_BIT (1u << 12)
 #define ST_MAKE(key, oct) ((uint16_t)(ST_ON | (key) | (uint32_t)((oct) + 3) << 3))
+#define ST_MIDI(s) ((uint32_t)((int32_t)HAM_MIDI[ST_KEY(s)] + 12 * ST_OCT(s) + (int32_t)ST_SHARP(s)))
 /* the sound knobs, 0..32 each: LYS (the hamsters through two low-passes; 32: open, as ever), LENGDE (a note's length,
    16: as ever), PIP (the squeak and the trill, 16: as ever, 0: none), ROM (the room, 16: as ever, 0: dry). A step can
    hold its own (hq.plock: REC while it plays), else the knob's */
@@ -718,7 +721,7 @@ static void step_note(uint32_t s, uint32_t p, uint32_t step, int32_t from, uint3
     note_t n;
     n.key = ST_KEY(s);
     n.toct = ST_OCT(s);
-    midi = (uint32_t)((int32_t)HAM_MIDI[n.key] + 12 * n.toct);
+    midi = ST_MIDI(s);
     n.lgp = note_lgp(midi);
     n.vel = HAM_VEL_LG[step & 15u] + (ST_ACCENT(s) ? LG_ACCENT : 0);
     n.ss = umax(MS(55), sub);
@@ -773,7 +776,7 @@ static void sq_fire(void)                       /* the step sq.step of the patte
     if (s & ST_ON) {
         if (hq.skip != fired)                   /* (skip: played by hand a moment ago, and recorded here) */
             step_note(s, p, step, sq.last_lgp, 0);
-        sq.last_lgp = note_lgp((uint32_t)((int32_t)HAM_MIDI[ST_KEY(s)] + 12 * ST_OCT(s)));
+        sq.last_lgp = note_lgp(ST_MIDI(s));
     }
     if (++sq.step >= 16u) {                     /* the bar is over: the song goes on, or the pattern asked for */
         sq.step = 0;
@@ -842,7 +845,7 @@ static void sq_command(uint32_t c)
         for (k = 1; k <= 16u && ST_GLIDE(s); k++) {   /* a glide: from the note before it in the pattern */
             uint32_t o = hq.pat[p][(step + 16u - k) & 15u];
             if (o & ST_ON) {
-                from = note_lgp((uint32_t)((int32_t)HAM_MIDI[ST_KEY(o)] + 12 * ST_OCT(o)));
+                from = note_lgp(ST_MIDI(o));
                 break;
             }
         }

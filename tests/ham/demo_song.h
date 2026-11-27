@@ -5,7 +5,7 @@
  *   B  intro: opening all the way, on to the groove                     (LYS 14 .. 32)
  *   C  the groove: Am, F, the bass under it                             (the knobs: turned by hand in the demo)
  *   D  the groove: C, G
- *   E  the build: ratchets, two, three, four, up and up                 (LYS 6 .. 32, PIP 8 .. 32, short)
+ *   E  the build: ratchets, two, three, four, up and up: F, then E (G sharp: home to A minor)  (LYS 6 .. 32, PIP 8 .. 32)
  *   F  the hook: Am, F, up high
  *   G  the hook: C, G, home to G
  *   H  the end: Am, long, the light going                               (LYS 26 .. 8, LENGDE 32, ROM 32)
@@ -18,6 +18,7 @@
 #define R2 (1u << 10)                           /* ratchet x2, x3, x4 */
 #define R3 (2u << 10)
 #define R4 (3u << 10)
+#define SH ST_SHARP_BIT                         /* a semitone up */
 /* the hamsters: C 0, D 1, E 2, F 3, G 4, A 5, B 6, the high C 7; octave 0 is C4 .. C5 */
 #define C_ 0
 #define D_ 1
@@ -42,9 +43,9 @@ static void ham_demo(void)
         /* D  the groove: C, G */
         {DS(C_, -1, AC), DS(E_, 0, 0), DS(G_, 0, 0), DS(CC_, 0, 0), DS(E_, -1, 0), DS(G_, 0, 0), DS(A_, 0, 0), DS(G_, 0, GL),
          DS(G_, -2, AC), DS(D_, 0, 0), DS(G_, 0, 0), DS(B_, 0, 0), DS(D_, 1, 0), DS(B_, 0, 0), DS(A_, 0, R2), DS(G_, 0, A12)},
-        /* E  the build: F, G, the ratchets closer and closer */
+        /* E  the build: F, then E major (E G# B D: the way home to A minor), the ratchets closer and closer */
         {DS(F_, -1, R2 | AC), DS(A_, -1, R2), DS(C_, 0, R2), DS(F_, 0, R2), DS(A_, 0, R2), DS(CC_, 0, R2), DS(A_, 0, R3), DS(CC_, 0, R3),
-         DS(G_, -1, R3 | AC), DS(B_, -1, R3), DS(D_, 0, R3), DS(G_, 0, R3), DS(B_, 0, R4), DS(D_, 1, R4), DS(F_, 1, R4), DS(G_, 1, R4 | AC)},
+         DS(E_, -1, R3 | AC), DS(G_, -1, R3 | SH), DS(B_, -1, R3), DS(E_, 0, R3), DS(G_, 0, R4 | SH), DS(B_, 0, R4), DS(D_, 1, R4), DS(E_, 1, R4 | AC)},
         /* F  the hook: Am, F */
         {DS(A_, -1, AC), DS(CC_, 0, 0), DS(E_, 1, 0), DS(D_, 1, GL), DS(CC_, 0, 0), 0, DS(B_, 0, 0), DS(CC_, 0, A7),
          DS(F_, -1, AC), DS(A_, 0, 0), DS(CC_, 0, 0), 0, DS(A_, 0, GL), DS(G_, 0, 0), DS(A_, 0, 0), DS(CC_, 0, R3)},
