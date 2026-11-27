@@ -167,6 +167,9 @@ def arr(name, typ, vals, per=12, fmt="{}"):
     return "\n".join(s)
 
 
+SUB_LO, SUB_HI = 24, 60
+
+
 def build():
     o = ["/* SPDX-License-Identifier: GPL-3.0-only */",
          "/* HamsterSynth's sound tables. Made by tools/gen_ham_tables.py: do not edit. */",
@@ -242,6 +245,32 @@ def build():
             o.append("    {" + ", ".join(str(v) for v in row) + "},")
         o.append("};")
     o.append(arr("HAM_HV_BODY", "int16_t", hb))
+    # the sub (the chubby one): a hum, "mmm". A voice's harmonics (falling 4 dB an octave) through a nose: its murmur
+    # at 270 Hz, its brighter ones at 1, 2.3 and 3.2 kHz (something going on up high), a dip at 750 Hz; up to 4.5 kHz. A table a semitone, MIDI 24 (C1) .. 60
+    # (C4): its peak 0.98 of full (phases spread, Schroeder's), and a gain to bring each to an RMS of 0.5 (SUB_HUM_G,
+    # Q14: the low ones are peakier)
+    res = lambda f, fc, bw: 1 / np.sqrt(1 + ((f - fc) / (bw / 2)) ** 2)
+    xw = np.arange(WT_N) / WT_N * 2 * np.pi
+    hum, hg = [], []
+    for m in range(SUB_LO, SUB_HI + 1):
+        f0 = 440 * 2 ** ((m - 69) / 12)
+        n = int(min(40, 4500 // f0))
+        y = np.zeros(WT_N)
+        for k in range(1, n + 1):
+            f = k * f0
+            h = (.25 + res(f, 270, 120) + .8 * res(f, 1000, 250) + .6 * res(f, 2300, 350) + .4 * res(f, 3200, 400)) * \
+                (1 - .6 * res(f, 750, 150))
+            y += h / k ** .67 * (1.6 if k == 1 else 1) * np.sin(k * xw - np.pi * k * (k - 1) / n)   # (its root: the weight)
+        y *= .98 / np.abs(y).max()
+        hg.append(int(round(.5 / np.sqrt((y ** 2).mean()) * 16384)))
+        hum.append([int(round(v * 32767)) for v in y] + [int(round(y[0] * 32767))])
+    o.append(f"#define SUB_LO {SUB_LO}u                                /* the sub's tables: MIDI {SUB_LO} .. {SUB_HI} */")
+    o.append(f"#define SUB_HI {SUB_HI}u")
+    o.append(arr("SUB_HUM_G", "int16_t", hg, 13))
+    o.append(f"static const int16_t SUB_HUM[{len(hum)}][{WT_N + 1}] = {{   /* Q15 */")
+    for row in hum:
+        o.append("    {" + ", ".join(str(v) for v in row) + "},")
+    o.append("};")
     o.append(arr("HAM_HV_VIB", "uint32_t", [int(round(v[2] * CB / FS * 2 ** 32)) for v in HVOICE], 8, "{}u"))
     o.append(arr("HAM_HV_SQUEAK", "int32_t", [lg(2 ** (v[3] / 12)) for v in HVOICE], 8))
     seat = [-.5 + k / 7 for k in range(8)]      # the eight in a row, left to right, as on the screen

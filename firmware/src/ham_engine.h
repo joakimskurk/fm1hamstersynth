@@ -635,12 +635,9 @@ static void drum_on(uint32_t id, uint32_t vc, int32_t vel)
             env_start(&d->pitch, LGP_SNARE[3]);
             env_start(&d->oamp, LG_SNARE_TONE[3] + v);
             env_seg(&d->oamp, SEG_RAMP, LG_FLOOR, blk(SN_TONE[3]));
-        } else if (id == DR_HAT) {              /* a sniff, twice */
-            env_seg(&d->namp, SEG_RAMP, LG_HAT_PK[3] + v, blk(MS(4)));
-            env_seg(&d->namp, SEG_RAMP, LG_FLOOR, blk(MS(28)));
-            env_seg(&d->namp, SEG_HOLD, 0, blk(MS(23)));
-            env_seg(&d->namp, SEG_RAMP, LG_HAT_PK[3] + v - 20000, blk(MS(4)));
-            env_seg(&d->namp, SEG_RAMP, LG_FLOOR, blk(MS(40)));
+        } else if (id == DR_HAT) {              /* a sniff: one quick breath in (two were a double hit on every hat) */
+            env_seg(&d->namp, SEG_RAMP, LG_HAT_PK[3] + v, blk(MS(6)));
+            env_seg(&d->namp, SEG_RAMP, LG_FLOOR, blk(MS(38)));
         } else {                                /* a paw's pat, and a squeak over it */
             env_seg(&d->namp, SEG_RAMP, LG_CLAP_PK[3] + v, blk(MS(2)));
             env_seg(&d->namp, SEG_RAMP, LG_FLOOR, blk(MS(40)));
@@ -683,22 +680,28 @@ static void drum_on(uint32_t id, uint32_t vc, int32_t vel)
 }
 
 /* ---- the sequencer (all of it in the interrupt) */
-/* ---- the sub: the chubby one's line. One note at a time, round and deep: a sine and a little of its second harmonic,
-   a hum (its third and fifth) as it begins and a blip of pitch from above (hm!), a glide from the note before. Two
-   octaves under its step's note; not through the room, nor LYS, nor THALL's octave: the floor under the hamsters */
-#define LG_SUB (-240000)                        /* its level: a sine at 0.08, 2 dB over a hamster (by RMS: a bass, felt less) */
+/* ---- the sub: the chubby one's line. One note at a time, deep, and hummed: "mmm", a voice through a nose (its
+   tables, SUB_HUM: its murmur at 270 Hz, brighter ones up at 1, 2.3 and 3.2 kHz, a dip at 750), a quick start with a
+   blip of pitch from above (hm!), no trill, a glide from the note before. Two octaves under its step's note; not through the room, nor LYS,
+   nor THALL's octave: the floor under the hamsters */
+#define LG_SUB (-203000)                        /* its level: 2 dB over a hamster, by RMS (a bass is felt less) */
 #define LG_SUB_BLIP (10923)                     /* two semitones */
-typedef struct { uint8_t on; uint32_t ph; int32_t lgp, a; env_t amp, pv, hum; } sub_t;
+typedef struct { uint8_t on; uint32_t ph; int32_t lgp, a, tg; const int16_t *tw; env_t amp, pv; } sub_t;
 static sub_t subv;
-static int32_t sub_pitch(uint32_t midi)          /* a key's note, two octaves down (C1 at the lowest) */
+static uint32_t sub_midi(uint32_t midi)          /* a key's note, two octaves down (C1 at the lowest) */
 {
-    return HAM_LGP[midi < 48u ? 24u : midi > 127u ? 103u : midi - 24u];
+    return midi < 48u ? 24u : midi > 127u ? 103u : midi - 24u;
 }
+static int32_t sub_pitch(uint32_t midi) { return HAM_LGP[sub_midi(midi)]; }
 static void sub_note_on(const note_t *n)
 {
     sub_t *v = &subv;
     uint32_t ss = umax(n->ss, MS(60)), dur = len_of(umax(ss * 92u / 100u, MS(80)), n), gt;
     int32_t vel = n->vel < LG_VMIN ? LG_VMIN : n->vel > LG_VMAX ? LG_VMAX : n->vel;
+    uint32_t m = (uint32_t)n->toct;             /* (the sub's: its note, two octaves down) */
+    m = m < SUB_LO ? SUB_LO : m > SUB_HI ? SUB_HI : m;
+    v->tw = SUB_HUM[m - SUB_LO];
+    v->tg = SUB_HUM_G[m - SUB_LO];
     env_start(&v->amp, v->on ? v->amp.lg : LG_FLOOR);   /* (one at a time: from where it is, no click) */
     env_seg(&v->amp, SEG_RAMP, LG_SUB + vel, blk(MS(5)));
     env_seg(&v->amp, SEG_RAMP, LG_SUB + vel - 32768, blk(dur > MS(45) ? dur - MS(45) : 1u));
@@ -712,24 +715,22 @@ static void sub_note_on(const note_t *n)
         env_seg(&v->pv, SEG_RAMP, 0, blk(MS(25)));
         v->ph = v->on ? v->ph : 0u;
     }
-    env_start(&v->hum, 12000);                  /* (how much hum: Q15, gone in 70 ms) */
-    env_seg(&v->hum, SEG_RAMP, 0, blk(MS(70)));
     v->lgp = n->lgp;
     v->on = 1;
 }
 static void sub_block(int32_t *mix)
 {
     sub_t *v = &subv;
-    int32_t alg = env_step(&v->amp), hum = env_step(&v->hum), a1, da;
+    int32_t alg = env_step(&v->amp), a1, da;
     uint32_t inc = ex2_inc(v->lgp + env_step(&v->pv)), i;
     a1 = (int32_t)(ex2_q24(alg) >> 9);          /* Q15 */
     da = (a1 - v->a) / (int32_t)HCB;
     for (i = 0; i < HCB; i++) {
+        uint32_t k = v->ph >> 24, f = (v->ph >> 8) & 0xFFFFu;
         int32_t s;
         v->ph += inc;
-        s = HAM_SIN[v->ph >> 20] + ((HAM_SIN[(v->ph * 2u) >> 20] * 6554) >> 15);
-        if (hum)
-            s += ((HAM_SIN[(v->ph * 3u) >> 20] + (HAM_SIN[(v->ph * 5u) >> 20] >> 1)) * hum) >> 15;
+        s = v->tw[k] + (((v->tw[k + 1u] - v->tw[k]) * (int32_t)f) >> 16);
+        s = (s * v->tg) >> 14;
         v->a += da;
         mix[i] += (s * v->a) >> 7;              /* Q15 * Q15 -> Q23 */
     }
@@ -807,7 +808,7 @@ static void sub_step(uint32_t s, uint32_t p, uint32_t step, int32_t from)   /* a
     uint32_t count = ST_RATCHET(s), k, sub = sq_step_frames() / count, midi = ST_MIDI(s);
     note_t n;
     n.key = 7;
-    n.toct = 0;
+    n.toct = (int32_t)sub_midi(midi);           /* (the sub's: its note, for its table) */
     n.lgp = sub_pitch(midi);
     n.vel = HAM_VEL_LG[step & 15u] + (ST_ACCENT(s) ? LG_ACCENT : 0);
     n.ss = umax(MS(55), sub);
@@ -936,7 +937,7 @@ static void sq_command(uint32_t c)
         note_t n;
         uint32_t midi = a & 127u, vq = a >> 7 & 127u;
         n.key = 7;
-        n.toct = 0;
+        n.toct = (int32_t)sub_midi(midi);
         n.lgp = sub_pitch(midi);
         n.vel = vq ? HAM_MIDI_VEL_LG[vq] : 0;
         n.ss = sq_step_frames();
