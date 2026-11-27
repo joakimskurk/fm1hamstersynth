@@ -87,7 +87,7 @@ også ut og inn som MIDI CC: 74 (LYS), 72 (LENGDE), 77 (PIP) og 91 (ROM).
 
 **Suben:** den åttende hamsteren, den chubby med solbriller, har sin egen linje: 16 steg i hver sekvens, under
 melodien, to oktaver ned. Den nynner, «hmmm»: en tung grunntone med en stemme gjennom nesen over (mest rundt 270 Hz,
-og lysere overtoner rundt 1, 2,3 og 3,2 kHz), et lite «hm!» ovenfra i anslaget, glide når glide er på. **ARP** bytter
+og litt lysere overtoner rundt 1, 2,3 og 3,2 kHz: mer humm enn summing), et lite «hm!» ovenfra i anslaget, glide når glide er på. **ARP** bytter
 mellom melodien og suben; i sub-visningen er stegene hvite på mørkt og det står SUB nederst. Alt annet virker som i
 melodien: tangentene (også de svarte), REC og EDIT (uten arp), ENV, SEL. Melodiens høye C synger nå den gylne, en
 oktav opp. Suben går ut på MIDI-kanalen etter melodiens.
